@@ -31,6 +31,5 @@ end
 
 function Camera:stop()
    print('stopping camera')
-   sys.execute('killall -9 frame_grabber-quicktime')
    sys.execute('rm -f shared-mem')
 end
