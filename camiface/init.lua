@@ -4,6 +4,7 @@
 ----------------------------------
 require 'torch'
 require 'image'
+require 'sys'
 require 'libcamiface'
 
 ----------------------------------
@@ -15,6 +16,7 @@ function Camera:__init()
    self.threadID = libcamiface.forkProcess('frame_grabber-quicktime')
    self.sharedMemFile = 'shared-mem'
    self.tensor = torch.Tensor(3,480,640)
+   sys.sleep(2)
 end
 
 function Camera:forward(tensor)
@@ -29,5 +31,6 @@ end
 
 function Camera:stop()
    print('stopping camera')
-   libcamiface.killProcess(self.threadID)
+   sys.execute('killall -9 frame_grabber-quicktime')
+   sys.execute('rm -f shared-mem')
 end
