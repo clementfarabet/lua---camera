@@ -1,0 +1,11 @@
+# Locate IOKit
+# This module defines
+# IOKIT_LIBRARY
+# IOKIT_FOUND
+
+IF(APPLE)
+  SET(IOKIT_FOUND "YES")
+  SET(IOKIT_LIBRARY "-framework IOKit")
+ELSE(APPLE)
+  SET(IOKIT_FOUND "NO")
+ENDIF(APPLE)

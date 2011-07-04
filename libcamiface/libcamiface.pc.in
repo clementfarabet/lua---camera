@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libcamiface
+Description: camera interface library
+Version: ${PKG_CONFIG_VERSION}
+Libs: -L${libdir} -lcam_iface_unity
+Cflags: -I${includedir}
