@@ -59,6 +59,16 @@ build = {
          endif (NOT UNIX)
 
          install_files(/lua/camera init.lua)
+
+         if (APPLE)
+             # finally, build+install libcamiface, outside of Luarocks
+             # this is a bit of a hack of course, but works ok
+             string (REGEX REPLACE "(.*)lib/luarocks/rocks.*" "\\1" PREFIX "${CMAKE_INSTALL_PREFIX}" )
+             message (STATUS "Installing libcamiface to: " ${PREFIX})
+             execute_process(COMMAND mkdir -p scratch)
+             execute_process(COMMAND cmake ../libcamiface -DCMAKE_INSTALL_PREFIX=${PREFIX} WORKING_DIRECTORY scratch)
+             execute_process(COMMAND make install WORKING_DIRECTORY scratch)
+         endif (APPLE)
    ]],
 
    variables = {
