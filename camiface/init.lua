@@ -30,6 +30,5 @@ function Camera:forward(tensor)
 end
 
 function Camera:stop()
-   print('stopping camera')
-   sys.execute('rm -f shared-mem')
+   print('stopping camera (warning: no propper of doing this for now)')
 end
