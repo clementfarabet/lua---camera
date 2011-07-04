@@ -43,7 +43,7 @@ build = {
              add_library (v4l SHARED video4linux/v4l.c)
              target_link_libraries (v4l ${TORCH_LIBRARIES})
              install_targets (/lib v4l)
-             install_files (/lua/video4linux video4linux/init.lua)
+             add_subdirectory (video4linux)
          endif (UNIX AND NOT APPLE)
 
          if (APPLE)
