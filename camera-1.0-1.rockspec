@@ -35,11 +35,11 @@ build = {
          set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
          find_package (Torch REQUIRED)
-         find_package (png QUIET)
 
          set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
          if (UNIX AND NOT APPLE)
+             include_directories (${TORCH_INCLUDE_DIR})
              add_library (v4l SHARED video4linux/v4l.c)
              target_link_libraries (v4l ${TORCH_LIBRARIES})
              install_targets (/lib v4l)
@@ -47,10 +47,11 @@ build = {
          endif (UNIX AND NOT APPLE)
 
          if (APPLE)
+             include_directories (${TORCH_INCLUDE_DIR})
              add_library (camiface SHARED camiface/camiface.c)
              target_link_libraries (camiface ${TORCH_LIBRARIES})
              install_targets (/lib camiface)
-             install_files (/lua/camiface camiface/init.lua)
+             add_subdirectory (camiface)
          endif (APPLE)
 
          if (NOT UNIX)

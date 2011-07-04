@@ -115,14 +115,14 @@ static int l_getSharedFrame (lua_State *L) {
         }
       }
     } else if (tensor64->nDimension == 3) {  // GREEN Chanel
-      if (tensor64->size[2] == 1) {
+      if (tensor64->size[0] == 1) {
         for (y=0; y<tensor64->size[0]; y++) {
           for (x=0; x<tensor64->size[1]; x++) {
             double pix = ((double)buffer->data[(y*buffer->width+x)*buffer->bytes_per_pixel+1]) / 256; 
             THDoubleTensor_set3d(tensor64, 0, y, x, pix);
           }
         }
-      } else if (tensor64->size[2] == 3) {   // RGB Chanels
+      } else if (tensor64->size[0] == 3) {   // RGB Chanels
         for (y=0; y<tensor64->size[1]; y++) {
           for (x=0; x<tensor64->size[2]; x++) {
             for (k=0; k<tensor64->size[0]; k++) {

@@ -17,6 +17,8 @@ find_path (TORCH_INCLUDE_DIR lua.h
            ${TORCH_BIN_DIR}/../include/ 
            NO_DEFAULT_PATH)
 
+set (TORCH_INCLUDE_DIR ${TORCH_INCLUDE_DIR} ${TORCH_INCLUDE_DIR}/TH)
+
 set (TORCH_PACKAGE_PATH "${TORCH_BIN_DIR}/../share/lua/5.1" CACHE PATH "where Lua searches for Lua packages")
 set (TORCH_PACKAGE_CPATH "${TORCH_BIN_DIR}/../lib/lua/5.1" CACHE PATH "where Lua searches for library packages")
 

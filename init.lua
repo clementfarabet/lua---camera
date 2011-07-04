@@ -3,6 +3,7 @@
 -- dependencies
 ----------------------------------
 require 'sys'
+require 'xlua'
 
 ----------------------------------
 -- load camera driver based on OS
@@ -24,10 +25,10 @@ end
 ----------------------------------
 camera = {}
 camera.testme = function()
-                   local cam = Camera{}
+                   local cam = image.Camera{}
                    local w = nil
                    for i = 1,200 do -- ~10 seconds
-                      local frame = cam:getFrame()
+                      local frame = cam:forward()
                       w = image.display{image=frame, win=w}
                    end
                    cam:stop()
