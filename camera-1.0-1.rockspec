@@ -1,0 +1,66 @@
+
+package = "camera"
+version = "1.0-1"
+
+source = {
+   url = "camera-1.0-1.tgz"
+}
+
+description = {
+   summary = "A camera interface for Torch7.",
+   detailed = [[
+         A simple camera interface for Torch7. 
+         Extends the 'image' package by creating 
+         an image.Camera() class. Works on MacOSX
+         and Linux.
+   ]],
+   homepage = "",
+   license = "MIT/X11" -- or whatever you like
+}
+
+dependencies = {
+   "lua >= 5.1",
+   "torch",
+   "xlua",
+   "sys",
+   "image"
+}
+
+build = {
+   type = "cmake",
+
+   cmake = [[
+         cmake_minimum_required(VERSION 2.8)
+
+         set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
+
+         find_package (Torch REQUIRED)
+         find_package (png QUIET)
+
+         set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+         if (UNIX AND NOT APPLE)
+             add_library (v4l SHARED video4linux/v4l.c)
+             target_link_libraries (v4l ${TORCH_LIBRARIES})
+             install_targets (/lib v4l)
+             install_files (/lua/video4linux video4linux/init.lua)
+         endif (UNIX AND NOT APPLE)
+
+         if (APPLE)
+             add_library (camiface SHARED camiface/camiface.c)
+             target_link_libraries (camiface ${TORCH_LIBRARIES})
+             install_targets (/lib camiface)
+             install_files (/lua/camiface camiface/init.lua)
+         endif (APPLE)
+
+         if (NOT UNIX)
+             message (ERROR "This package only builds on Unix platforms")
+         endif (NOT UNIX)
+
+         install_files(/lua/camera init.lua)
+   ]],
+
+   variables = {
+      CMAKE_INSTALL_PREFIX = "$(PREFIX)"
+   }
+}
