@@ -34,6 +34,10 @@ build = {
 
          set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
+         # infer path for Torch7
+         string (REGEX REPLACE "(.*)lib/luarocks/rocks.*" "\\1" TORCH_PREFIX "${CMAKE_INSTALL_PREFIX}" )
+         message (STATUS "Found Torch7, installed in: " ${TORCH_PREFIX})
+
          find_package (Torch REQUIRED)
 
          set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
