@@ -44,6 +44,14 @@ include_directories( ${CMAKE_SOURCE_DIR}/include )
 
 FIND_PACKAGE(PkgConfig)
 
+IF(UNIX)
+  SET(CMAKE_SKIP_BUILD_RPATH FALSE)
+  SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) 
+  SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+  SET(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+ENDIF(UNIX)
+
 # Backend: mega will always be built -----
 set(all_backends mega)
 # Backend: libdc1394 ---------------------------------
@@ -144,9 +152,7 @@ SET(CPACK_PACKAGE_VERSION_MAJOR "${V_MAJOR}")
 SET(CPACK_PACKAGE_VERSION_MINOR "${V_MINOR}")
 SET(CPACK_PACKAGE_VERSION_PATCH "${V_PATCH}")
 SET(CPACK_PACKAGE_INSTALL_DIRECTORY "libcamiface ${V_MAJOR}.${V_MINOR}.${V_PATCH}")
-SET(CPACK_PACKAGE_EXECUTABLES
-    "liveview-glut-mega" "liveview"
-    "simple-mega" "simple")
+SET(CPACK_PACKAGE_EXECUTABLES "frame_grabber")
 
 SET(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/installer_readme.html")
 
