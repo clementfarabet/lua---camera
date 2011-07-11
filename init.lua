@@ -40,7 +40,7 @@ camera.testme = function()
                       fps = math.ceil((1/t + fps)/2)
                    end
                    cam:stop()
-                   print 'done !'
+                   print 'done: create your own frame grabber with image.Camera()'
                    print '--------------------------------------------------'
                    camera._w = w
                    w.window:hide()
