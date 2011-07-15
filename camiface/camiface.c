@@ -32,7 +32,7 @@ struct video_buffer {
   char request_frame;
   char frame_ready;
   char bytes_per_pixel;
-  char dump_to_file;
+  char exit;
   int width;
   int height;
   unsigned char data[];
@@ -47,10 +47,10 @@ static int shmem_id;
 static int l_getSharedFrame (lua_State *L) {
   // Shared Mem Info
   const char *path = luaL_checkstring(L, 1);
-  int dump_to_file = 0;
+  int exit = 0;
 
   // Dump ?
-  if (lua_isboolean(L, 3)) dump_to_file = lua_toboolean(L, 3);
+  if (lua_isboolean(L, 3)) exit = lua_toboolean(L, 3);
 
   // Get Tensor's Info
   THDoubleTensor * tensor64 = NULL;
@@ -99,7 +99,15 @@ static int l_getSharedFrame (lua_State *L) {
   }
   
   // make a frame request
-  buffer->dump_to_file = dump_to_file;
+  buffer->exit = exit;
+  if (exit) { 
+    // Destroy Shared Mem
+    if(shmdt(buffer) == -1) {
+      perror("shmdt");
+    }
+    shared_mem_connected = 0;
+    return 0;
+  }
   buffer->request_frame = 1;
   while (buffer->request_frame); // request received
   while (!buffer->frame_ready) sleep(0.01); // wait for frame to be ready
@@ -134,9 +142,6 @@ static int l_getSharedFrame (lua_State *L) {
       }
     }
   }
-
-  // Reset that guy for next time (not really useful)
-  buffer->dump_to_file = 0;
   return 0; 
 }
 

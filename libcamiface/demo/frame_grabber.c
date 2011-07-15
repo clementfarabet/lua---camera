@@ -51,45 +51,6 @@ void get_time(char * formatted_time) {
     }                                                                               \
   }                                                                                 \
 
-void save_pgm(const char* filename, unsigned char *pixels, int width, int height) {
-  FILE* fd; int i;
-  char file [64];
-  sprintf(file, "%s.pgm", filename);
-  fd = fopen(file,"w");
-  fprintf(fd,"P5\n");
-  fprintf(fd,"%d %d\n",width,height);
-  fprintf(fd,"255\n");
-  for (i=0; i<width*height; i++) fprintf(fd, "%c", pixels[i*4+1]);
-  fprintf(fd,"\n");
-  fclose(fd);
-}
-
-void save_ppm(const char* filename, unsigned char *pixels, 
-              int width, int height, int transpose) {
-  FILE* fd; int i,j,k;
-  char file [64];
-  sprintf(file, "%s.ppm", filename);
-  fd = fopen(file,"w");
-  fprintf(fd,"P6\n");
-  if (transpose) {
-    fprintf(fd,"%d %d\n",height,width);
-    fprintf(fd,"255\n");
-    for (j=0; j<width; j++) 
-      for (i=0; i<height; i++) 
-        for (k=0; k<3; k++) 
-          fprintf(fd, "%c", pixels[(i*width+j)*4+k]);
-    fprintf(fd,"\n");
-  } else {
-    fprintf(fd,"%d %d\n",width,height);
-    fprintf(fd,"255\n");
-    for (i=0; i<width*height; i++) 
-      for (j=0; j<3; j++) 
-        fprintf(fd, "%c", pixels[i*4+j]);
-    fprintf(fd,"\n");
-  }
-  fclose(fd);
-}
-
 void sigint_handler(int sig_no) {
   printf("\nreceived sigint...\n");
   processingStopped = 1;
@@ -191,7 +152,7 @@ int main(int argc, char** argv) {
     char request_frame;
     char frame_ready;
     char bytes_per_pixel;
-    char dump_to_file;
+    char exit;
     int width;
     int height;
     unsigned char pixels[];
@@ -215,12 +176,6 @@ int main(int argc, char** argv) {
   key_t shmem_key;
   int shmem_id;
   int stride;
-
-  // File dump
-  char filename[64];
-  const char * basefilename = "cam-dump";
-  int dump = 0;
-  if (argc > 1 && (strcmp(argv[1], "dump") == 0)) dump = 1;
 
   // frequency
   int sleep_btn_frames = 0;
@@ -357,7 +312,7 @@ int main(int argc, char** argv) {
   buffer->bytes_per_pixel = 3; // RGB
   buffer->request_frame = 0;
   buffer->frame_ready = 0;
-  buffer->dump_to_file = dump;
+  buffer->exit = 0;
   buffer->width = width;
   buffer->height = height;
   
@@ -368,6 +323,7 @@ int main(int argc, char** argv) {
     while (!buffer->request_frame) {
       if (processingStopped) goto cleanup; // sigint received
       if (getppid() == 1) goto cleanup; // parent died
+      if (buffer->exit) goto cleanup; // exit requested
       if (argc > 1) break; // standalone mode
       usleep(1); // save CPU
     }
@@ -388,26 +344,16 @@ int main(int argc, char** argv) {
 
     buffer->frame_ready = 1;
 
-    // Optional dump to file
-    if (buffer->dump_to_file) {
-      char formatted_time[32];
-      get_time(formatted_time);
-      sprintf(filename, "%s-%s", basefilename, formatted_time);
-      printf("dumping frame to %s.ppm\n", filename);
-      save_ppm(filename, buffer->pixels, width, height, 1);
-      if (argc > 3) {
-        sprintf(filename, "%s %s-%s", argv[3], basefilename, formatted_time);
-        system(filename);
-      }
-    }
-
     sleep(sleep_btn_frames); // Time between snapshots
 
     n_frames++;
   }
   
  cleanup:
-  
+
+  // Message
+  printf("<camiface> releasing\n");
+
   // Free data
   delete_CamContext(cc);
   _check_error();

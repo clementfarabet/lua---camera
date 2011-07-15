@@ -30,5 +30,5 @@ function Camera:forward(tensor)
 end
 
 function Camera:stop()
-   print('stopping camera (warning: no propper of doing this for now)')
+   libcamiface.getSharedFrame(self.sharedMemFile, self.tensor, true)
 end
