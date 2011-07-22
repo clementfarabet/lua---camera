@@ -29,8 +29,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeModules )
 
 ##  global setup
 if (APPLE)
-   set (CMAKE_C_COMPILER gcc-4.0)
-   set (CMAKE_CXX_COMPILER g++-4.0)
+   set (CMAKE_C_FLAGS "-m32")
+   set (CMAKE_CXX_FLAGS "-m32")
 endif (APPLE)
 
 project(libcamiface)
