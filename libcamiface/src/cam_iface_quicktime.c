@@ -90,7 +90,7 @@ typedef struct {
 typedef struct CCquicktime {
   CamContext inherited;
 
-  GWorldPtr gworld; // offscreen gworld
+  GWorldPtr gworld;
   SGChannel sg_video_channel;
   Rect rect;
   TimeValue last_timestamp;
