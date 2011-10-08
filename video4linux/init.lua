@@ -25,17 +25,18 @@ function Camera:__init(...)
    self.camidx = '/dev/video'..(idx or 0)
    self.nbuffers = nbuffers
    self.fps = fps
-   self.tensor = torch.Tensor(3,480,640)
+   self.tensor = torch.DoubleTensor(3,480,640)
+   self.tensortyped = torch.Tensor(self.tensor:size())
 end
 
 function Camera:forward(tensor)
    libv4l.grabFrame(self.tensor, self.camidx, self.nbuffers, self.fps)
+   self.tensortyped:copy(self.tensor)
    if tensor then
-      image.scale(self.tensor,tensor)
-   else
-      tensor = self.tensor
+      image.scale(self.tensortyped, tensor)
+      return tensor
    end
-   return tensor
+   return self.tensortyped
 end
 
 function Camera:stop()
