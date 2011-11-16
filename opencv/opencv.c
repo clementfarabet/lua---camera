@@ -27,7 +27,7 @@
 #include <pthread.h>
 
 #include <cv.h>
-#include <highgui.c>
+#include <highgui.h>
 
 static CvCapture* capture;
 static IplImage* frame;
@@ -35,7 +35,7 @@ static int height;
 static int width;
 
 static int l_initCam(lua_State *L) {
-    const int idx = luaL_tonumber(L, 1);
+    const int idx = lua_tonumber(L, 1);
     capture = cvCreateCameraCapture(idx);
     if( capture == NULL ) {
       perror("could not create OpenCV capture");
@@ -86,7 +86,7 @@ static int l_releaseCam (lua_State *L) {
 }
 
 // Register functions
-static const struct luaL_reg camiface [] = {
+static const struct luaL_reg opencv [] = {
   {"initCam", l_initCam},
   {"grabFrame", l_grabFrame},
   {"releaseCam", l_releaseCam},
