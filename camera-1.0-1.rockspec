@@ -51,11 +51,17 @@ build = {
          endif (UNIX AND NOT APPLE)
 
          if (APPLE)
-             include_directories (${TORCH_INCLUDE_DIR})
-             add_library (camiface SHARED camiface/camiface.c)
-             target_link_libraries (camiface ${TORCH_LIBRARIES})
-             install_targets (/lib camiface)
-             add_subdirectory (camiface)
+             #include_directories (${TORCH_INCLUDE_DIR})
+             #add_library (camiface SHARED camiface/camiface.c)
+             #target_link_libraries (camiface ${TORCH_LIBRARIES})
+             #install_targets (/lib camiface)
+             #add_subdirectory (camiface)
+             include_directories (${TORCH_INCLUDE_DIR} ${OpenCV_INCLUDE_DIR})
+             add_library (opencv SHARED opencv/opencv.c)
+             FIND_PACKAGE( OpenCV REQUIRED )
+             target_link_libraries (opencv ${TORCH_LIBRARIES} ${OpenCV_LIBS} )
+             install_targets (/lib opencv)
+             add_subdirectory (opencv)
          endif (APPLE)
 
          if (NOT UNIX)
@@ -67,11 +73,11 @@ build = {
          if (APPLE)
              # finally, build+install libcamiface, outside of Luarocks
              # this is a bit of a hack of course, but works ok
-             string (REGEX REPLACE "(.*)lib/luarocks/rocks.*" "\\1" PREFIX "${CMAKE_INSTALL_PREFIX}" )
-             message (STATUS "Installing libcamiface to: " ${PREFIX})
-             execute_process(COMMAND mkdir -p scratch)
-             execute_process(COMMAND cmake ../libcamiface -DCMAKE_INSTALL_PREFIX=${PREFIX} WORKING_DIRECTORY scratch)
-             execute_process(COMMAND make install WORKING_DIRECTORY scratch)
+             #string (REGEX REPLACE "(.*)lib/luarocks/rocks.*" "\\1" PREFIX "${CMAKE_INSTALL_PREFIX}" )
+             #message (STATUS "Installing libcamiface to: " ${PREFIX})
+             #execute_process(COMMAND mkdir -p scratch)
+             #execute_process(COMMAND cmake ../libcamiface -DCMAKE_INSTALL_PREFIX=${PREFIX} WORKING_DIRECTORY scratch)
+             #execute_process(COMMAND make install WORKING_DIRECTORY scratch)
          endif (APPLE)
    ]],
 

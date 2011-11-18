@@ -13,8 +13,8 @@ if sys.OS == 'linux' then
       xlua.error('failed to load video4linux wrapper: verify that you have v4l2 libs')
    end
 elseif sys.OS == 'macos' then
-   if not xlua.require 'camiface' then
-      xlua.error('failed to load camiface wrapper: verify that libcamiface is installed')
+   if not xlua.require 'opencv' then
+      xlua.error('failed to load opencv wrapper: verify that opencv is installed')
    end
 else
    xlua.error('not camera driver available for your OS, sorry :-(')
