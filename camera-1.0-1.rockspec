@@ -56,6 +56,7 @@ build = {
              #target_link_libraries (camiface ${TORCH_LIBRARIES})
              #install_targets (/lib camiface)
              #add_subdirectory (camiface)
+             #set (CMAKE_BUILD_TYPE CMAKE_CXX_FLAGS_DEBUG)
              include_directories (${TORCH_INCLUDE_DIR} ${OpenCV_INCLUDE_DIR})
              add_library (opencv SHARED opencv/opencv.c)
              FIND_PACKAGE( OpenCV REQUIRED )

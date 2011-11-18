@@ -20,22 +20,20 @@ function Camera:__init(...)
       {arg='idx', type='number', help='camera index', default=0}
    )
    -- init vars
+   self.height = 480
+   self.width = 640
    self.camidx = (idx or 0);
-   self.tensor = torch.DoubleTensor(3,480,640)
-   self.tensortyped = torch.Tensor(self.tensor:size())
-
+   self.tensor = torch.DoubleTensor(3,self.height,self.width)
+   
    -- init capture
    libopencv.initCam(idx);
 end
 
 function Camera:forward()
    libopencv.grabFrame(self.tensor)
-   self.tensortyped:copy(self.tensor)
-   if tensor then
-      image.scale(self.tensortyped, tensor)
-      return tensor
-   end
-   return self.tensortyped
+   -- image.savePNG("forward.png",self.tensor)
+   image.scale(self.tensor,self.width,self.height)
+   return self.tensor
 end
 
 function Camera:stop()
