@@ -22,7 +22,7 @@ function Camera:__init(...)
    -- init vars
    self.height = 480
    self.width = 640
-   self.camidx = (idx or 0);
+   self.camidx = (idx or -1);
    self.tensor = torch.DoubleTensor(3,self.height,self.width)
    
    -- init capture

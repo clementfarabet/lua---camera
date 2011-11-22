@@ -38,7 +38,13 @@ static int l_initCam(lua_State *L) {
     if( capture == NULL ) {
       perror("could not create OpenCV capture");
     }
+    sleep(2);
+    cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, 640);
+    cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, 480);
     frame = cvQueryFrame ( capture );
+    if ( frame == NULL ) {
+      perror("failed OpenCV test capture");
+    }
     // cvSaveImage("opencv.jpg",frame,0); 
     if(frame->depth != IPL_DEPTH_8U) {
       perror("initCam: opencv supported for 8-bit unsigned capture only");
