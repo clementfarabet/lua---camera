@@ -32,7 +32,7 @@ end
 function Camera:forward()
    libopencv.grabFrame(self.tensor)
    -- image.savePNG("forward.png",self.tensor)
-   image.scale(self.tensor,self.width,self.height)
+   -- image.scale(self.tensor,self.width,self.height)
    return self.tensor
 end
 
