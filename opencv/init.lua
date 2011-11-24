@@ -5,7 +5,7 @@
 require 'torch'
 require 'xlua'
 require 'image'
-require 'libopencv'
+require 'libcamopencv'
 
 ----------------------------------
 -- a camera class
@@ -16,7 +16,7 @@ function Camera:__init(...)
    -- parse args
    local args, idx = xlua.unpack(
       {...},
-      'ImageSource', help_desc,
+      'image.Camera', nil,
       {arg='idx', type='number', help='camera index', default=0}
    )
    -- init vars
@@ -24,19 +24,19 @@ function Camera:__init(...)
    self.width = 640
    self.camidx = (idx or -1);
    self.tensor = torch.DoubleTensor(3,self.height,self.width)
-   
+   self.tensortyped = torch.Tensor(self.tensor:size())
+
    -- init capture
-   libopencv.initCam(idx);
+   libcamopencv.initCam(idx);
 end
 
 function Camera:forward()
-   libopencv.grabFrame(self.tensor)
-   -- image.savePNG("forward.png",self.tensor)
-   -- image.scale(self.tensor,self.width,self.height)
-   return self.tensor
+   libcamopencv.grabFrame(self.tensor)
+   self.tensortyped:copy(self.tensor)
+   return self.tensortyped
 end
 
 function Camera:stop()
-  libopencv.releaseCam()
+  libcamopencv.releaseCam()
   print('stopping camera')
 end

@@ -1,3 +1,0 @@
-# linux udev rules for Pt. Grey Firefly MV USB
-SUBSYSTEM=="usb_device", ACTION=="add", SYSFS{idVendor}=="1e10",
-SYSFS{idProduct}=="2000", GROUP="video", MODE="0660"

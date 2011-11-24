@@ -110,7 +110,7 @@ static const struct luaL_reg opencv [] = {
   {NULL, NULL}  /* sentinel */
 };
 
-int luaopen_libopencv (lua_State *L) {
-  luaL_openlib(L, "libopencv", opencv, 0);
+int luaopen_libcamopencv (lua_State *L) {
+  luaL_openlib(L, "libcamopencv", opencv, 0);
   return 1; 
 }

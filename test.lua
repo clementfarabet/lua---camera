@@ -1,7 +1,8 @@
 require 'xlua'
-xrequire('camera',true)
+require 'camera'
 
 camera = image.Camera{}
 
 a = camera:forward()
-image.savePNG("test2.png",a)
+
+image.savePNG("test.png", a)
