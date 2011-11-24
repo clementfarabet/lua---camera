@@ -24,7 +24,7 @@ function Camera:__init(...)
    self.width = 640
    self.camidx = (idx or -1);
    self.tensor = torch.DoubleTensor(3,self.height,self.width)
-   self.tensortyped = torch.Tensor(self.tensor:size())
+   self.tensortyped = torch.Tensor()
 
    -- init capture
    libcamopencv.initCam(idx);
@@ -32,7 +32,7 @@ end
 
 function Camera:forward()
    libcamopencv.grabFrame(self.tensor)
-   self.tensortyped:copy(self.tensor)
+   self.tensortyped:resize(3,self.tensor:size(2),self.tensor:size(3)):copy(self.tensor)
    return self.tensortyped
 end
 

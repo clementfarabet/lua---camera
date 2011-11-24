@@ -2,9 +2,9 @@
 INSTALL:
 $ luarocks --from=http://data.neuflow.org/lua/rocks install camera
 
-TODO:
-All fixed and debugged on MacOSX. 
-Needs to be tested on Linux.
+STATE:
+MacOS: working on all MacOS builds, using OpenCV (wrapper from Jordan Bates)
+Linux: working all right, using raw video4linux2 (wrapper from Clement Farabet)
 
 USE:
 $ lua
