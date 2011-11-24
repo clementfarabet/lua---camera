@@ -1,4 +1,8 @@
 
+DEPENDENCIES:
+MacOS: Install OpenCV 2.X: http://opencv.willowgarage.com/
+Linux: None
+
 INSTALL:
 $ luarocks --from=http://data.neuflow.org/lua/rocks install camera
 
