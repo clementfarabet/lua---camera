@@ -17,7 +17,7 @@ elseif sys.OS == 'macos' then
       xlua.error('failed to load camopencv wrapper: verify that camopencv is installed')
    end
 else
-   xlua.error('not camera driver available for your OS, sorry :-(')
+   xlua.error('no camera driver available for your OS, sorry :-(')
 end
 
 ----------------------------------
@@ -25,6 +25,7 @@ end
 ----------------------------------
 camera = {}
 camera.testme = function()
+                   require 'qtwidget'
                    print '--------------------------------------------------'
                    print 'grabbing frames from your camera for about 10secs'
                    local cam = image.Camera{}
