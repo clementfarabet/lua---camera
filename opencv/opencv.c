@@ -56,10 +56,11 @@ static int l_initCam(lua_State *L) {
     cvSetCaptureProperty(capture[fidx], CV_CAP_PROP_FRAME_WIDTH, width);
     cvSetCaptureProperty(capture[fidx], CV_CAP_PROP_FRAME_HEIGHT, height);
     frame[fidx] = cvQueryFrame ( capture[fidx] );
-    int tries = 50;
+    int tries = 10;
     while ((!frame[fidx] || frame[fidx]->height != height || frame[fidx]->width != width) && tries>0) {
       frame[fidx] = cvQueryFrame ( capture[fidx] );
       tries--;
+      sleep(1);
     }
     if ( frame[fidx] == NULL ) {
       perror("failed OpenCV test capture");
