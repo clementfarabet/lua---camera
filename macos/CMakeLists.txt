@@ -13,3 +13,4 @@ SET_TARGET_PROPERTIES(cammacos PROPERTIES COMPILE_FLAGS "-std=c99")
 target_link_libraries (cammacos ${TORCH_LIBRARIES} ${EXTRA_LIBS})
 
 install_targets (/lib cammacos)
+install_files (/lua/cammacos init.lua)

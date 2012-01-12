@@ -378,15 +378,14 @@ static NSImage *image = NULL;
     return NO;
   }
 
-
   // Decompressed video output
   verbose( "\tCreating QTCaptureDecompressedVideoOutput...");
   mCaptureDecompressedVideoOutput = [[QTCaptureDecompressedVideoOutput alloc] init];
   [mCaptureDecompressedVideoOutput setDelegate:self];
 
   [mCaptureDecompressedVideoOutput setPixelBufferAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                                                            [NSNumber numberWithDouble:160.0], (id)kCVPixelBufferWidthKey,
-                                                                          [NSNumber numberWithDouble:120.0], (id)kCVPixelBufferHeightKey,
+                                                                            [NSNumber numberWithDouble:640.0], (id)kCVPixelBufferWidthKey,
+                                                                          [NSNumber numberWithDouble:480.0], (id)kCVPixelBufferHeightKey,
                                                                           [NSNumber numberWithUnsignedInt:kCVPixelFormatType_32ARGB], (id)kCVPixelBufferPixelFormatTypeKey,
                                                                           nil]];
 
@@ -446,11 +445,14 @@ static NSImage *image = NULL;
 
 @end
 
+// static vars
+static int nbcams = 0;
+static ImageSnap **snap = NULL;
+
 // start up all cameras found
 int initCameras(lua_State *L) {
   // find devices
   NSArray *devices = [ImageSnap videoDevices];
-  int nbcams;
   if ([devices count] > 0) {
     nbcams = [devices count];
     verbose("found %d video devices:\n", nbcams);
@@ -492,38 +494,64 @@ int initCameras(lua_State *L) {
   return 0;
 }
 
-/* grab pixels
-    for (int i=0; i<nbcams; i++) {
-      printf("grabbing image %d\n", i);
-      NSImage *image = [snap[i] snapshot];
-      printf("grabbed\n");
-      NSData *tiffData = [image TIFFRepresentation];
-      NSBitmapImageRep *imageRep = [NSBitmapImageRep imageRepWithData:tiffData];
-      NSSize size = [imageRep size];
-      int bytesPerRow = [imageRep bytesPerRow];
-      unsigned char *bytes = [imageRep bitmapData];
-      for (int y=0; y<size.height; y++) {
-        for (int x=0; x<size.width; x++) {
-          bytes[y*bytesPerRow + x*4 + 1];
-          bytes[y*bytesPerRow + x*4 + 2];
-          bytes[y*bytesPerRow + x*4 + 3];
-        }
-      }
-      [tiffData release];
-      [imageRep release];
-    }
-*/
+// grab next frames
+int grabFrames(lua_State *L) {
 
-/* cleanup
-  // be nice
+  // grab pixels for each camera
+  for (int i=0; i<nbcams; i++) {
+
+    // get next tensor
+    THFloatTensor * tensor = luaT_checkudata(L, 1, luaT_checktypename2id(L, "torch.FloatTensor"));
+
+    // grab frame
+    verbose("grabbing image %d\n", i);
+    NSImage *image = [snap[i] snapshot];
+    verbose("grabbed\n");
+
+    // export to tiff
+    NSData *tiffData = [image TIFFRepresentation];
+    NSBitmapImageRep *imageRep = [NSBitmapImageRep imageRepWithData:tiffData];
+    NSSize size = [imageRep size];
+    int bytesPerRow = [imageRep bytesPerRow];
+    unsigned char *bytes = [imageRep bitmapData];
+
+    // resize dest
+    long width = size.width;
+    long height = size.height;
+    THFloatTensor_resize3d(tensor, 3, height, width);
+    float *tensor_data = THFloatTensor_data(tensor);
+
+    // copy pixels
+    for (int y=0; y<height; y++) {
+      for (int x=0; x<width; x++) {
+        tensor_data[(0*height + y)*width + x] = bytes[y*bytesPerRow + x*4 + 1];
+        tensor_data[(1*height + y)*width + x] = bytes[y*bytesPerRow + x*4 + 2];
+        tensor_data[(2*height + y)*width + x] = bytes[y*bytesPerRow + x*4 + 3];
+      }
+    }
+
+    // cleanup
+    [tiffData release];
+    [imageRep release];
+
+  }
+
+  // done
+  return 0;
+}
+
+// stop camers
+int releaseCameras(lua_State *L) {
   for (int i=0; i<nbcams; i++) {
     [snap[i] release];
   }
- */
+}
 
 // Register functions into lua space
 static const struct luaL_reg cammacos [] = {
   {"initCameras", initCameras},
+  {"grabFrames", grabFrames},
+  {"releaseCameras", releaseCameras},
   {NULL, NULL}  /* sentinel */
 };
 
