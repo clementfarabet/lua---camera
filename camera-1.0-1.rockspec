@@ -57,6 +57,8 @@ build = {
              target_link_libraries (camopencv ${TORCH_LIBRARIES} ${OpenCV_LIBS} )
              install_targets (/lib camopencv)
              add_subdirectory (opencv)
+
+             add_subdirectory (macos)
          endif (APPLE)
 
          if (NOT UNIX)
