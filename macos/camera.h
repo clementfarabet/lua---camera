@@ -58,7 +58,7 @@ BOOL g_quiet = NO;
 -(id)init;
 -(void)dealloc;
 
--(BOOL)startSession:(QTCaptureDevice *)device;
+-(BOOL)startSession:(QTCaptureDevice *)device withWidth:(unsigned int)width withHeight:(unsigned int)height;
 -(CIImage *)snapshot;
 -(void)stopSession;
 
