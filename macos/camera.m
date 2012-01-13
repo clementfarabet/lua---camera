@@ -352,7 +352,6 @@
 int releaseCameras(lua_State *L);
 
 // static vars
-static NSArray *deviceName = NULL;
 static int nbcams = 0;
 static ImageSnap **snap = NULL;
 static QTCaptureDevice **device = NULL;
@@ -370,7 +369,7 @@ int initCameras(lua_State *L) {
   int height = lua_tonumber(L, 3);
 
   // find devices
-  deviceName = [ImageSnap videoDevices];
+  NSArray *deviceName = [ImageSnap videoDevices];
   int k = 0;
   if ([deviceName count] > 0) {
     printf("found %ld video device(s):\n", [deviceName count]);
@@ -483,7 +482,6 @@ int releaseCameras(lua_State *L) {
     [snap[i] release];
     [device[i] release];
   }
-  [deviceName release];
   free(device);
   nbcams = 0;
   snap = NULL;
