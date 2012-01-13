@@ -355,12 +355,18 @@ int releaseCameras(lua_State *L);
 static int nbcams = 0;
 static ImageSnap **snap = NULL;
 static QTCaptureDevice **device = NULL;
+static NSAutoreleasePool * pool = NULL;
 
 // start up all cameras found
 int initCameras(lua_State *L) {
   // free cams
   if (nbcams > 0) {
     releaseCameras(L);
+  }
+
+  // pool
+  if (pool == NULL) {
+    pool = [[NSAutoreleasePool alloc] init];
   }
 
   // get args
