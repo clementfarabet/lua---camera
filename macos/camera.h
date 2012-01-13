@@ -9,7 +9,7 @@
 #define console(...) (!g_quiet && printf(__VA_ARGS__))
 #define verbose(...) (g_verbose && !g_quiet && fprintf(stderr, __VA_ARGS__))
 
-BOOL g_verbose = YES;
+BOOL g_verbose = NO;
 BOOL g_quiet = NO;
 
 @interface ImageSnap : NSObject {
@@ -55,23 +55,11 @@ BOOL g_quiet = NO;
  */
 +(NSData *)dataFrom:(NSImage *)image asType:(NSString *)format;
 
-
-
-/**
- * Primary one-stop-shopping message for capturing an image.
- * Activates the video source, saves a frame, stops the source,
- * and saves the file.
- */
-+(BOOL)saveSingleSnapshotFrom:(QTCaptureDevice *)device toFile:(NSString *)path;
-+(BOOL)saveSingleSnapshotFrom:(QTCaptureDevice *)device toFile:(NSString *)path withWarmup:(NSNumber *)warmup;
-+(BOOL)saveSingleSnapshotFrom:(QTCaptureDevice *)device toFile:(NSString *)path withWarmup:(NSNumber *)warmup withTimelapse:(NSNumber *)timelapse;
-
 -(id)init;
 -(void)dealloc;
 
-
 -(BOOL)startSession:(QTCaptureDevice *)device;
--(NSImage *)snapshot;
+-(CIImage *)snapshot;
 -(void)stopSession;
 
 @end

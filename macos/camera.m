@@ -160,108 +160,11 @@
   return photoData;
 }   // end dataFrom
 
-
-
-/**
- * Primary one-stop-shopping message for capturing an image.
- * Activates the video source, saves a frame, stops the source,
- * and saves the file.
- */
-
-+(BOOL)saveSingleSnapshotFrom:(QTCaptureDevice *)device toFile:(NSString *)path{
-  return [self saveSingleSnapshotFrom:device toFile:path withWarmup:nil];
-}
-
-+(BOOL)saveSingleSnapshotFrom:(QTCaptureDevice *)device toFile:(NSString *)path withWarmup:(NSNumber *)warmup{
-  return [self saveSingleSnapshotFrom:device toFile:path withWarmup:warmup withTimelapse:nil];
-}
-
-+(BOOL)saveSingleSnapshotFrom:(QTCaptureDevice *)device
-                       toFile:(NSString *)path
-                   withWarmup:(NSNumber *)warmup
-                withTimelapse:(NSNumber *)timelapse{
-  ImageSnap *snap;
-  NSImage *image = nil;
-  double interval = timelapse == nil ? -1 : [timelapse doubleValue];
-
-  snap = [[ImageSnap alloc] init];            // Instance of this ImageSnap class
-  verbose("Starting device...");
-  if( [snap startSession:device] ){           // Try starting session
-    verbose("Device started.\n");
-
-    if( warmup == nil ){
-      // Skip warmup
-      verbose("Skipping warmup period.\n");
-    } else {
-      double delay = [warmup doubleValue];
-      verbose("Delaying %.2lf seconds for warmup...",delay);
-      NSDate *now = [[NSDate alloc] init];
-      [[NSRunLoop currentRunLoop] runUntilDate:[now dateByAddingTimeInterval: [warmup doubleValue]]];
-      [now release];
-      verbose("Warmup complete.\n");
-    }
-
-    if ( interval > 0 ) {
-
-      verbose("Time lapse: snapping every %.2lf seconds to current directory.\n", interval);
-
-      NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-      [dateFormatter setDateFormat:@"yyyy-MM-dd_HH-mm-ss.SSS"];
-
-      // wait a bit to make sure the camera is initialized
-      //[[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow: 1.0]];
-
-      for (unsigned long seq=0; ; seq++)
-        {
-          NSDate *now = [[NSDate alloc] init];
-          NSString *nowstr = [dateFormatter stringFromDate:now];
-
-          verbose(" - Snapshot %5lu", seq);
-          verbose(" (%s)\n", [nowstr UTF8String]);
-
-          // create filename
-          NSString *filename = [NSString stringWithFormat:@"snapshot-%05d-%s.jpg", seq, [nowstr UTF8String]];
-
-          // capture and write
-          image = [snap snapshot];                // Capture a frame
-          if (image != nil)  {
-            [ImageSnap saveImage:image toPath:filename];
-            console( "%s\n", [filename UTF8String]);
-          } else {
-            error( "Image capture failed.\n" );
-          }
-
-          // sleep
-          [[NSRunLoop currentRunLoop] runUntilDate:[now dateByAddingTimeInterval: interval]];
-
-          [now release];
-        }
-
-    } else {
-      image = [snap snapshot];                // Capture a frame
-
-    }
-    //NSLog(@"Stopping...");
-    [snap stopSession];                     // Stop session
-    //NSLog(@"Stopped.");
-  }   // end if: able to start session
-
-  [snap release];
-
-  if ( interval > 0 ){
-    return YES;
-  } else {
-    return image == nil ? NO : [ImageSnap saveImage:image toPath:path];
-  }
-}   // end
-
-
 /**
  * Returns current snapshot or nil if there is a problem
  * or session is not started.
  */
-static NSImage *image = NULL;
--(NSImage *)snapshot{
+-(CIImage *)snapshot{
   verbose( "Taking snapshot...\n");
 
   CVImageBufferRef frame = nil;               // Hold frame we find
@@ -276,16 +179,13 @@ static NSImage *image = NULL;
 
     if( frame == nil ){                     // Still no frame? Wait a little while.
       [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow: 0.1]];
-    }   // end if: still nothing, wait
+    }
 
-  }   // end while: no frame yet
-
-  //   // Convert frame to an NSImage
-  NSCIImageRep *imageRep = [NSCIImageRep imageRepWithCIImage:[CIImage imageWithCVImageBuffer:frame]];
-  if (image == NULL) {
-    image = [[NSImage alloc] initWithSize:[imageRep size]];
   }
-  [image addRepresentation:imageRep];
+
+  // Convert frame to an NSImage
+  NSCIImageRep *imageRep = [NSCIImageRep imageRepWithCIImage:[CIImage imageWithCVImageBuffer:frame]];
+  CIImage *image = [imageRep CIImage];
   [imageRep release];
 
   return image;
@@ -329,7 +229,10 @@ static NSImage *image = NULL;
 /**
  * Begins the capture session. Frames begin coming in.
  */
--(BOOL)startSession:(QTCaptureDevice *)device{
+-(BOOL)startSession:(QTCaptureDevice *)device
+          withWidth:(unsigned int)width
+         withHeight:(unsigned int)height
+{
 
   verbose( "Starting capture session...\n" );
 
@@ -384,8 +287,8 @@ static NSImage *image = NULL;
   [mCaptureDecompressedVideoOutput setDelegate:self];
 
   [mCaptureDecompressedVideoOutput setPixelBufferAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                                                            [NSNumber numberWithDouble:640.0], (id)kCVPixelBufferWidthKey,
-                                                                          [NSNumber numberWithDouble:480.0], (id)kCVPixelBufferHeightKey,
+                                                                            [NSNumber numberWithUnsignedInt:width], (id)kCVPixelBufferWidthKey,
+                                                                          [NSNumber numberWithUnsignedInt:height], (id)kCVPixelBufferHeightKey,
                                                                           [NSNumber numberWithUnsignedInt:kCVPixelFormatType_32ARGB], (id)kCVPixelBufferPixelFormatTypeKey,
                                                                           nil]];
 
@@ -445,40 +348,68 @@ static NSImage *image = NULL;
 
 @end
 
+// forward declaration
+int releaseCameras(lua_State *L);
+
 // static vars
+static NSArray *deviceName = NULL;
 static int nbcams = 0;
 static ImageSnap **snap = NULL;
+static QTCaptureDevice **device = NULL;
 
 // start up all cameras found
 int initCameras(lua_State *L) {
+  // free cams
+  if (nbcams > 0) {
+    releaseCameras(L);
+  }
+
+  // get args
+  nbcams = lua_objlen(L, 1);
+  int width = lua_tonumber(L, 2);
+  int height = lua_tonumber(L, 3);
+
   // find devices
-  NSArray *devices = [ImageSnap videoDevices];
-  if ([devices count] > 0) {
-    nbcams = [devices count];
-    verbose("found %d video devices:\n", nbcams);
-    for( QTCaptureDevice *device in devices ){
-      printf( "%s\n", [[device description] UTF8String] );
+  deviceName = [ImageSnap videoDevices];
+  int k = 0;
+  if ([deviceName count] > 0) {
+    printf("found %ld video device(s):\n", [deviceName count]);
+    for( QTCaptureDevice *name in deviceName ){
+      printf( "%d: %s\n", k++, [[name description] UTF8String] );
     }
   } else {
-    verbose("no video devices found, aborting...\n");
+    printf("no video devices found, aborting...\n");
     return 0;
   }
 
   // init given cameras
-  QTCaptureDevice **device = malloc(sizeof(QTCaptureDevice *)*nbcams);
-  int i = 0;
-  for( QTCaptureDevice *dev in devices ){
-    device[i++] = [ImageSnap deviceNamed:[dev description]];
+  printf("user requested %d camera(s)\n", nbcams);
+  if ([deviceName count] < nbcams) {
+    nbcams = [deviceName count];
+    printf("only using the first %d camera(s)\n", nbcams);
+  }
+  device = malloc(sizeof(QTCaptureDevice *)*nbcams);
+  int i = 0, j = 0;
+  for( QTCaptureDevice *dev in deviceName ) {
+    // next cam:
+    for (int k=1; k<=nbcams; k++) {
+      lua_rawgeti(L, 1, k);
+      int user = lua_tonumber(L, -1);
+      if (user == j) {
+        device[i++] = [ImageSnap deviceNamed:[dev description]];
+        printf( "using device %d: %s\n", j, [[dev description] UTF8String] );
+      }
+      lua_pop(L, 1);
+    }
+    j++;
   }
 
   // start snapshots
-  ImageSnap **snap = malloc(sizeof(ImageSnap *)*nbcams);
+  snap = malloc(sizeof(ImageSnap *)*nbcams);
   for (int i=0; i<nbcams; i++) {
     snap[i] = [[ImageSnap alloc] init];
-    [snap[i] startSession:device[i]];
-
-    if( [snap[i] startSession:device[i]] ) {
-      verbose("device %d started.\n", i);
+    if( [snap[i] startSession:device[i] withWidth:width withHeight:height] ) {
+      printf("device %d started.\n", i);
     }
   }
 
@@ -491,7 +422,8 @@ int initCameras(lua_State *L) {
   verbose("warmup complete.\n");
 
   // done
-  return 0;
+  lua_pushnumber(L, nbcams);
+  return 1;
 }
 
 // grab next frames
@@ -501,16 +433,19 @@ int grabFrames(lua_State *L) {
   for (int i=0; i<nbcams; i++) {
 
     // get next tensor
-    THFloatTensor * tensor = luaT_checkudata(L, 1, luaT_checktypename2id(L, "torch.FloatTensor"));
+    lua_rawgeti(L, 1, i+1);
+    THFloatTensor * tensor = luaT_checkudata(L, -1, luaT_checktypename2id(L, "torch.FloatTensor"));
+    lua_pop(L, 1);
 
     // grab frame
     verbose("grabbing image %d\n", i);
-    NSImage *image = [snap[i] snapshot];
+    CIImage *image = [snap[i] snapshot];
     verbose("grabbed\n");
 
-    // export to tiff
-    NSData *tiffData = [image TIFFRepresentation];
-    NSBitmapImageRep *imageRep = [NSBitmapImageRep imageRepWithData:tiffData];
+    // export to bitmap
+    NSBitmapImageRep *imageRep = [[NSBitmapImageRep alloc] initWithCIImage:image];
+
+    // get info
     NSSize size = [imageRep size];
     int bytesPerRow = [imageRep bytesPerRow];
     unsigned char *bytes = [imageRep bitmapData];
@@ -524,16 +459,15 @@ int grabFrames(lua_State *L) {
     // copy pixels
     for (int y=0; y<height; y++) {
       for (int x=0; x<width; x++) {
-        tensor_data[(0*height + y)*width + x] = bytes[y*bytesPerRow + x*4 + 1];
-        tensor_data[(1*height + y)*width + x] = bytes[y*bytesPerRow + x*4 + 2];
-        tensor_data[(2*height + y)*width + x] = bytes[y*bytesPerRow + x*4 + 3];
+        tensor_data[(0*height + y)*width + x] = (float)bytes[y*bytesPerRow + x*4 + 0] / 255.0;
+        tensor_data[(1*height + y)*width + x] = (float)bytes[y*bytesPerRow + x*4 + 1] / 255.0;
+        tensor_data[(2*height + y)*width + x] = (float)bytes[y*bytesPerRow + x*4 + 2] / 255.0;
       }
     }
 
     // cleanup
-    [tiffData release];
     [imageRep release];
-
+    [image release];
   }
 
   // done
@@ -542,9 +476,18 @@ int grabFrames(lua_State *L) {
 
 // stop camers
 int releaseCameras(lua_State *L) {
+  if (snap == NULL) {
+    return 0;
+  }
   for (int i=0; i<nbcams; i++) {
     [snap[i] release];
+    [device[i] release];
   }
+  [deviceName release];
+  free(device);
+  nbcams = 0;
+  snap = NULL;
+  return 0;
 }
 
 // Register functions into lua space
