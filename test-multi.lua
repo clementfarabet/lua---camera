@@ -14,7 +14,7 @@ a3 = camera3:forward()
 a4 = camera4:forward()
 win = image.display{win=win,image={a1,a2,a3,a4}}
 
-for i = 1,100 do
+while true do
    sys.tic()
    a1 = camera1:forward()
    a2 = camera2:forward()

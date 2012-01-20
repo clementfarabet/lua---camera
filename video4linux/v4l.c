@@ -94,12 +94,13 @@ static int l_init (lua_State *L) {
   int height   = 480;
   if (lua_isnumber(L, 3)) height = lua_tonumber(L, 3);
   // grabbing speed
-  int fps      = 10;
+  int fps      = 1;
   if (lua_isnumber(L, 4)) fps = lua_tonumber(L, 4);
+  printf("FPS wanted %d \n", fps);
   // nb of buffers
   int nbuffers =  1;
   if (lua_isnumber(L, 5)) nbuffers = lua_tonumber(L, 5);
-
+  printf("Using %d buffers\n", nbuffers);
   // get camera
   camera->fd = open(camera->device, O_RDWR);
   if (camera->fd == -1)

@@ -21,7 +21,7 @@ function Camera:__init(...)
       {arg='width', type='number', help='width', default=640},
       {arg='height', type='number', help='height', default=480},
       {arg='buffers', type='number', help='number of buffers (v4l2 only)', default=1},
-      {arg='fps', type='number', help='optional frame rate (v4l2 only)', default=30}
+      {arg='fps', type='number', help='optional frame rate (v4l2 only)', default=1}
    )
    -- init vars
    self.camidx = idx
