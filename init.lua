@@ -9,7 +9,7 @@ require 'xlua'
 -- load camera driver based on OS
 ----------------------------------
 if sys.OS == 'linux' then
-   if not xlua.require 'video4linux' then
+   if not xlua.require 'v4l' then
       xlua.error('failed to load video4linux wrapper: verify that you have v4l2 libs')
    end
 elseif sys.OS == 'macos' then

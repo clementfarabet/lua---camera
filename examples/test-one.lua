@@ -1,4 +1,4 @@
-require 'xlua'
+require 'torch'
 require 'sys'
 require 'camera'
 width  = 1920
