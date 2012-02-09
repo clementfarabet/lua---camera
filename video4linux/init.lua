@@ -34,6 +34,26 @@ function Camera:__init(...)
    libv4l.init(self.camidx, self.width, self.height, self.fps, self.nbuffers)
 end
 
+function Camera:adjustManualFocus(f)
+   libv4l.adjustManualFocus(self.camidx,f)
+end
+
+function Camera:setManualFocus()
+   libv4l.setFocusType(self.camidx,0)
+end
+
+function Camera:setAutoFocus()
+   libv4l.setFocusType(self.camidx,1)
+end
+
+function Camera:setMacroFocus()
+   libv4l.setFocusType(self.camidx,2)
+end
+
+function Camera:setContinuousFocus()
+   libv4l.setFocusType(self.camidx,3)
+end
+
 function Camera:forward(tensor)
    libv4l.grabFrame(self.camidx, self.tensor)
    self.tensortyped:copy(self.tensor)

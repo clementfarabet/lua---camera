@@ -77,6 +77,52 @@ static void set_boolean_control(Cam *camera, int id, int val) {
 }
 
 
+static int l_set_focus_type(lua_State *L){
+  // device
+  Cam *camera;
+  int camid = 0;
+  int val = 0;
+  if (lua_isnumber(L, 1)) camid = lua_tonumber(L, 1);
+  camera = &Cameras[camid];
+  if (camera->started != 1){
+    printf("Camera not open at this index\n");
+    return -1;
+  }
+  if (lua_isnumber(L, 2)) val = lua_tonumber(L,2);
+  /* val can be :
+   * enum  v4l2_focus_auto_type {
+   *  V4L2_FOCUS_MANUAL     = 0,
+   *  V4L2_FOCUS_AUTO       = 1,
+   *  V4L2_FOCUS_MACRO      = 2,
+   *  V4L2_FOCUS_CONTINUOUS = 3
+   *  }
+   */
+  if ((val >= 0) && (val <= 4)){
+    set_boolean_control(camera,V4L2_CID_FOCUS_AUTO, val);
+  } else {
+    printf("Bad value for setFocusType\n");
+  }
+  return 0;
+}
+
+static int l_adjust_manual_focus(lua_State *L){
+  // device
+  Cam *camera;
+  int camid = 0;
+  int val = 0;
+  if (lua_isnumber(L, 1)) camid = lua_tonumber(L, 1);
+  camera = &Cameras[camid];
+  if (camera->started != 1){
+    printf("Camera not open at this index\n");
+    return -1;
+  }
+  if (lua_isnumber(L, 2)) val = lua_tonumber(L,2);
+  /* set to manual focus */
+  set_boolean_control(camera,V4L2_CID_FOCUS_AUTO, 0);
+  set_boolean_control(camera,V4L2_CID_FOCUS_ABSOLUTE, val);
+  return 0;
+}
+
 // frame grabber
 static int l_init (lua_State *L) {
   Cam * camera;
@@ -304,9 +350,11 @@ static int l_releaseCam (lua_State *L) {
 
 // Register functions in LUA
 static const struct luaL_reg v4l [] = {
-  {"init", l_init},
-  {"grabFrame", l_grabFrame},
-  {"releaseCam", l_releaseCam},
+  {"init"             , l_init},
+  {"grabFrame"        , l_grabFrame},
+  {"releaseCam"       , l_releaseCam},
+  {"setFocusType"     , l_set_focus_type},
+  {"adjustManualFocus", l_adjust_manual_focus},
   {NULL, NULL}  /* sentinel */
 };
 
