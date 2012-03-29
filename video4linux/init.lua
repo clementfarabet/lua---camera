@@ -29,7 +29,7 @@ function Camera:__init(...)
    self.height = height
    self.nbuffers = nbuffers
    self.fps = fps
-   self.tensor = torch.DoubleTensor(3,height,width)
+   self.tensor = torch.FloatTensor(3,height,width)
    self.tensortyped = torch.Tensor(self.tensor:size())
    libv4l.init(self.camidx, self.width, self.height, self.fps, self.nbuffers)
 end
@@ -56,12 +56,20 @@ end
 
 function Camera:forward(tensor)
    libv4l.grabFrame(self.camidx, self.tensor)
-   self.tensortyped:copy(self.tensor)
    if tensor then
-      image.scale(self.tensortyped, tensor)
+      if (self.tensor:type() ~= tensor:type()) then
+	 self.tensortyped:copy(self.tensor)
+	 image.scale(self.tensortyped, tensor)
+	 return tensor
+      end
+      image.scale(self.tensor, tensor)
       return tensor
    end
-   return self.tensortyped
+   if (self.tensor:type() ~=  self.tensortyped:type()) then
+      self.tensortyped:copy(self.tensor)
+      return self.tensortyped
+   end
+   return self.tensor
 end
 
 function Camera:stop()
