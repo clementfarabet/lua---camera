@@ -48,13 +48,13 @@ static int l_initCam(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     printf("initializing camera\n");
     const int idx = lua_tonumber(L, 1);
-    capture[fidx] = cvCreateCameraCapture(idx);
+    capture[fidx] = cvCaptureFromCAM(idx);
     if( capture[fidx] == NULL ) {
       perror("could not create OpenCV capture");
     }
-    sleep(2);
-    cvSetCaptureProperty(capture[fidx], CV_CAP_PROP_FRAME_WIDTH, width);
-    cvSetCaptureProperty(capture[fidx], CV_CAP_PROP_FRAME_HEIGHT, height);
+    //    sleep(2);
+    //cvSetCaptureProperty(capture[fidx], CV_CAP_PROP_FRAME_WIDTH, width);
+    //cvSetCaptureProperty(capture[fidx], CV_CAP_PROP_FRAME_HEIGHT, height);
     frame[fidx] = cvQueryFrame ( capture[fidx] );
     int tries = 10;
     while ((!frame[fidx] || frame[fidx]->height != height || frame[fidx]->width != width) && tries>0) {
