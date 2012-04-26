@@ -38,6 +38,9 @@ while true do
    frame:narrow(3,320*4,320):copy(a1)
    image.display{win=win,image=frame}
    image.savePNG(string.format("%s/frame_%05d.png",dir,f),frame)
+   for i = 1,5 do
+      image.savePNG(string.format("%s/frame_%05d_%d.png",dir,f,i),frame)
+   end 
    f = f + 1
    print("FPS: ".. 1/sys.toc()) 
 end
