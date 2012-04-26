@@ -1,5 +1,29 @@
-
 SET(src v4l.c)
 SET(luasrc init.lua)
+
+SET(OMP 1)
+IF (OMP)
+   FIND_PACKAGE(OpenMP)
+   IF(OPENMP_FOUND)
+      MESSAGE(STATUS "OpenMP Found with compiler flag : ${OpenMP_C_FLAGS}")
+      SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+   ENDIF(OPENMP_FOUND)
+ENDIF (OMP)
+
+FIND_PACKAGE(ARM)
+IF (NEON_FOUND)
+  MESSAGE(STATUS "Neon found with compiler flag : -mfpu=neon -D__NEON__")
+  SET(CMAKE_C_FLAGS "-mfpu=neon -D__NEON__ ${CMAKE_C_FLAGS}")
+ENDIF (NEON_FOUND)
+IF (CORTEXA8_FOUND)
+  MESSAGE(STATUS "Cortex-A8 Found with compiler flag : -mcpu=cortex-a8")
+  SET(CMAKE_C_FLAGS "-mcpu=cortex-a8 -fprefetch-loop-arrays ${CMAKE_C_FLAGS}")
+ENDIF (CORTEXA8_FOUND)
+IF (CORTEXA9_FOUND)
+  MESSAGE(STATUS "Cortex-A9 Found with compiler flag : -mcpu=cortex-a9")
+  SET(CMAKE_C_FLAGS "-mcpu=cortex-a9 ${CMAKE_C_FLAGS}")
+ENDIF (CORTEXA9_FOUND)
+
 ADD_TORCH_PACKAGE(v4l "${src}" "${luasrc}" "Image Processing")
+
 TARGET_LINK_LIBRARIES(v4l luaT TH)
