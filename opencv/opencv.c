@@ -82,7 +82,7 @@ static int l_initCam(lua_State *L) {
   // next
   lua_pushnumber(L, fidx);
   fidx ++;
-  return 0;
+  return 1;
 }
 
 // frame grabber

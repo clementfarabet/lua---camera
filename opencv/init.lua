@@ -26,13 +26,14 @@ function Camera:__init(...)
    self.tensorsized = torch.FloatTensor(3, height, width)
    self.buffer = torch.FloatTensor()
    self.tensortyped = torch.Tensor(3, height, width)
+   self.idx = idx
 
    -- init capture
-   self.idx = libcamopencv.initCam(idx, width, height)
+   self.fidx = libcamopencv.initCam(idx, width, height)
 end
 
 function Camera:forward()
-   libcamopencv.grabFrame(self.idx, self.buffer)
+   libcamopencv.grabFrame(self.fidx, self.buffer)
    if self.tensorsized:size(2) ~= self.buffer:size(2) or self.tensorsized:size(3) ~= self.buffer:size(3) then
       image.scale(self.buffer, self.tensorsized)
    else
@@ -47,6 +48,6 @@ function Camera:forward()
 end
 
 function Camera:stop()
-  libcamopencv.releaseCam(self.idx)
+  libcamopencv.releaseCam(self.fidx)
   print('stopping camera')
 end
