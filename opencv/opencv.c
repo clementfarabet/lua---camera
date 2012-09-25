@@ -32,12 +32,12 @@
 #define MAXIDX 100
 static CvCapture* capture[MAXIDX];
 static IplImage* frame[MAXIDX];
-static fidx = 0;
+static int fidx = 0;
 
 static int l_initCam(lua_State *L) {
   // args
-  int width = lua_tonumber(L, 2);
-  int height = lua_tonumber(L, 3);
+  //int width = lua_tonumber(L, 2);
+  //int height = lua_tonumber(L, 3);
 
   // max allocs ?
   if (fidx == MAXIDX) {
@@ -104,7 +104,7 @@ static int l_grabFrame (lua_State *L) {
   int m0 = tensor->stride[1];
   int m1 = tensor->stride[2];
   int m2 = tensor->stride[0];
-  unsigned char *src = frame[idx]->imageData;
+  unsigned char *src = (unsigned char *) frame[idx]->imageData;
   float *dst = THFloatTensor_data(tensor);
   int i, j, k;
   for (i=0; i < frame[idx]->height; i++) {
