@@ -57,6 +57,9 @@ static int l_initCam(lua_State *L) {
     //cvSetCaptureProperty(capture[fidx], CV_CAP_PROP_FRAME_HEIGHT, height);
     frame[fidx] = cvQueryFrame ( capture[fidx] );
     int tries = 10;
+    //while ((!frame[fidx] || frame[fidx]->height != height || frame[fidx]->width != width) && tries>0) {
+    //// The above while should only be used with cvSetCaptureProperty
+
     while ( !frame[fidx] && tries>0) {
       frame[fidx] = cvQueryFrame ( capture[fidx] );
       tries--;
