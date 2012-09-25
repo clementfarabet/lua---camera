@@ -439,7 +439,7 @@ int grabFrames(lua_State *L) {
 
     // get next tensor
     lua_rawgeti(L, 1, i+1);
-    THFloatTensor * tensor = luaT_checkudata(L, -1, luaT_checktypename2id(L, "torch.FloatTensor"));
+    THFloatTensor * tensor = luaT_toudata(L, -1, "torch.FloatTensor");
     lua_pop(L, 1);
 
     // grab frame

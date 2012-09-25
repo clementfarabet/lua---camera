@@ -89,7 +89,7 @@ static int l_initCam(lua_State *L) {
 static int l_grabFrame (lua_State *L) {
   // Get Tensor's Info
   const int idx = lua_tonumber(L, 1);
-  THFloatTensor * tensor = luaT_checkudata(L, 2, luaT_checktypename2id(L, "torch.FloatTensor"));
+  THFloatTensor * tensor = luaT_toudata(L, 2, "torch.FloatTensor");
 
   // grab frame
   frame[idx] = cvQueryFrame ( capture[idx] );
