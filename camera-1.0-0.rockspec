@@ -19,6 +19,7 @@ dependencies = {
    "torch >= 7.0",
    "xlua >= 1.0",
    "sys >= 1.0",
+   "image >= 1.0.1"
 }
 
 build = {
