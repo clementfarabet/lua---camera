@@ -6,7 +6,7 @@ Linux: None
 All: Torch7 (follow instructions here: www.torch.ch)
 
 INSTALL:
-$ torch-pkg install camera
+$ torch-rocks install camera
 
 STATE:
 MacOS: working on all MacOS builds, using OpenCV (wrapper from Jordan Bates)
