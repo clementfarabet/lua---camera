@@ -56,7 +56,7 @@ function Camera:forward()
    for i = 1,#self.idx do
       -- resize frames
       if self.tensorsized[i]:size(2) ~= self.buffer[i]:size(2) or self.tensorsized[i]:size(3) ~= self.buffer[i]:size(3) then
-         image.scale(self.buffer[i], self.tensorsized[i])
+         image.scale(self.tensorsized[i],self.buffer[i])
       else
          self.tensorsized[i] = self.buffer[i]
       end
