@@ -1,4 +1,3 @@
-
 ----------------------------------
 -- dependencies
 ----------------------------------
@@ -35,7 +34,7 @@ end
 function Camera:forward()
    libcamopencv.grabFrame(self.fidx, self.buffer)
    if self.tensorsized:size(2) ~= self.buffer:size(2) or self.tensorsized:size(3) ~= self.buffer:size(3) then
-      image.scale(self.tensorsized, self.buffer)
+      image.scale(self.buffer, self.tensorsized)
    else
       self.tensorsized = self.buffer
    end
