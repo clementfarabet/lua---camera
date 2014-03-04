@@ -1,4 +1,3 @@
-
 DEPENDENCIES:
 MacOS: Install OpenCV 2.X: http://opencv.willowgarage.com/
 Linux: None
@@ -6,7 +5,7 @@ Linux: None
 All: Torch7 (follow instructions here: www.torch.ch)
 
 INSTALL:
-$ torch-rocks install camera
+$ luarocks install camera
 
 STATE:
 MacOS: working on all MacOS builds, using OpenCV (wrapper from Jordan Bates)
