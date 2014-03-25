@@ -324,6 +324,43 @@ static int init_buffers(int camid, int nbuffers)
 }
 
 
+static int start_capturing(int camid)
+{
+    Cam * camera = &Cameras[camid];
+
+    int ret = 0;
+    int i;
+    for (i = 0; i < camera->nbuffers; ++i) {
+        struct v4l2_buffer buf;
+        memset((void*) &buf, 0, sizeof(struct v4l2_buffer));
+        buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buf.memory      = V4L2_MEMORY_MMAP;
+        buf.index       = i;
+        ret += ioctl(camera->fd, VIDIOC_QBUF, &buf);
+
+        if (ret < 0) {
+            printf("WARNING: could not enqueue camera %d, v4l2 buffer %d: errno %d\n",
+                camid, i, ret);
+        }
+    }
+
+    enum v4l2_buf_type type;
+    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    ret = ioctl(camera->fd, VIDIOC_STREAMON, &type);
+
+    if (ret < 0) {
+        fprintf(stderr, "could not start v4l2 capture: errno %d\n", ret);
+        camera->started = 0;
+        return -1;
+    }
+
+    camera->started = 1;
+    printf("camera[%d] started : %d\n",camid,camera->started);
+
+    return 0;
+}
+
+
 // frame grabber
 static int l_init (lua_State *L) {
     Cam * camera;
@@ -377,28 +414,10 @@ static int l_init (lua_State *L) {
     }
 
     // start capturing
-    int ret = 0;
-    int i;
-    for (i = 0; i < camera->nbuffers; ++i) {
-        struct v4l2_buffer buf;
-        memset((void*) &buf, 0, sizeof(struct v4l2_buffer));
-        buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        buf.memory      = V4L2_MEMORY_MMAP;
-        buf.index       = i;
-        ret += ioctl(camera->fd, VIDIOC_QBUF, &buf);
+    if (0 > start_capturing(camid)) {
+        lua_pushboolean(L, 0);
+        return 1;
     }
-    if (ret < 0)
-        printf("WARNING: could not enqueue v4l2 buffers: errno %d\n", ret);
-    enum v4l2_buf_type type;
-    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    ret = ioctl(camera->fd, VIDIOC_STREAMON, &type);
-    if (ret < 0) {
-        printf("WARNING: could not start v4l2 capture: errno %d\n", ret);
-        camera->started = 0;
-        return -1;
-    }
-    camera->started = 1;
-    printf("camera[%d] started : %d\n",camid,camera->started);
 
     lua_pushboolean(L, 1);
     return 1;
