@@ -324,6 +324,28 @@ static int init_buffers(int camid, int nbuffers)
 }
 
 
+static int init_camera(int camid, int width, int height, int fps, int nbuffers)
+{
+    if (0 > init_capability(camid)) {
+        return -1;
+    }
+
+    if (0 > init_format(camid, width, height)) {
+        return -1;
+    }
+
+    if (0 > init_controls(camid, fps)) {
+        return -1;
+    }
+
+    if (0 > init_buffers(camid, nbuffers)) {
+        return -1;
+    }
+
+    return 0;
+}
+
+
 static int start_capturing(int camid)
 {
     Cam * camera = &Cameras[camid];
@@ -386,34 +408,19 @@ static int l_init (lua_State *L) {
     if (lua_isnumber(L, 5)) nbuffers = lua_tonumber(L, 5);
     printf("Using %d buffers\n", nbuffers);
 
-    // get camera
+    // open
     if (0 > open_device(camid, camera->device)) {
         lua_pushboolean(L, 0);
         return 1;
     }
 
-    // init device
-    if (0 > init_capability(camid)) {
+    // init
+    if (0 > init_camera(camid, width, height, fps, nbuffers)) {
         lua_pushboolean(L, 0);
         return 1;
     }
 
-    if (0 > init_format(camid, width, height)) {
-        lua_pushboolean(L, 0);
-        return 1;
-    }
-
-    if (0 > init_controls(camid, fps)) {
-        lua_pushboolean(L, 0);
-        return 1;
-    }
-
-    if (0 > init_buffers(camid, nbuffers)) {
-        lua_pushboolean(L, 0);
-        return 1;
-    }
-
-    // start capturing
+    // start
     if (0 > start_capturing(camid)) {
         lua_pushboolean(L, 0);
         return 1;
