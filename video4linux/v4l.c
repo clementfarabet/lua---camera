@@ -194,7 +194,7 @@ static int init_capability(int camid)
 }
 
 
-static int init_format(int camid, int width, int height, int nbuffers)
+static int init_format(int camid, int width, int height)
 {
     Cam * camera = &Cameras[camid];
 
@@ -237,7 +237,6 @@ static int init_format(int camid, int width, int height, int nbuffers)
     camera->width    = width;
     camera->height1  = fmt.fmt.pix.height;
     camera->width1   = fmt.fmt.pix.width;
-    camera->nbuffers = nbuffers;
 
     if (camera->height != camera->height1 || camera->width != camera->width1) {
         printf("Warning: camera resolution changed to %dx%d\n",
@@ -265,6 +264,61 @@ static int init_controls(int camid, int fps)
     // set color controls
     set_boolean_control(camera,V4L2_CID_AUTOGAIN, 1);
     set_boolean_control(camera,V4L2_CID_AUTO_WHITE_BALANCE, 1);
+
+    return 0;
+}
+
+
+static int init_buffers(int camid, int nbuffers)
+{
+    Cam * camera = &Cameras[camid];
+
+    // allocate and map the buffers
+    camera->nbuffers = nbuffers;
+
+    struct v4l2_requestbuffers rb;
+    rb.count = camera->nbuffers;
+    rb.type =  V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    rb.memory = V4L2_MEMORY_MMAP;
+    int ret = ioctl(camera->fd, VIDIOC_REQBUFS, &rb);
+    if (ret < 0) {
+        perror("could not allocate v4l2 buffers");
+        return -1;
+    }
+    ret = 0;
+    int i;
+    for (i = 0; i < camera->nbuffers; i++) {
+        struct v4l2_buffer buf;
+        int r;
+        memset((void*) &buf, 0, sizeof(struct v4l2_buffer));
+        buf.index = i;
+        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buf.memory = V4L2_MEMORY_MMAP;
+        r = ioctl(camera->fd, VIDIOC_QUERYBUF, &buf);
+        if (r < 0)
+            ret = -(i+1);
+        if (ret == 0) {
+            camera->buffers[i] =
+                mmap(0, buf.length, PROT_READ + PROT_WRITE, MAP_SHARED,
+                     camera->fd, buf.m.offset);
+            camera->sizes[i] = buf.length;
+            if (camera->buffers[i] == MAP_FAILED)
+                ret = -(i+1000);
+        }
+    }
+
+    if (ret < 0) {
+        printf("ret = %d\n", ret);
+        if (ret > -1000) {
+            printf("query buffer %d\n", - (1 + ret));
+            perror("could not query v4l2 buffer");
+            return -1;
+        } else {
+            printf("map buffer %d\n", - (1000 + ret));
+            perror("could not map v4l2 buffer");
+            return -1;
+        }
+    }
 
     return 0;
 }
@@ -307,7 +361,7 @@ static int l_init (lua_State *L) {
         return 1;
     }
 
-    if (0 > init_format(camid, width, height, nbuffers)) {
+    if (0 > init_format(camid, width, height)) {
         lua_pushboolean(L, 0);
         return 1;
     }
@@ -317,51 +371,14 @@ static int l_init (lua_State *L) {
         return 1;
     }
 
-
-    // allocate and map the buffers
-    struct v4l2_requestbuffers rb;
-    rb.count = camera->nbuffers;
-    rb.type =  V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    rb.memory = V4L2_MEMORY_MMAP;
-    int ret = ioctl(camera->fd, VIDIOC_REQBUFS, &rb);
-    if (ret < 0) {
-        // (==> this cleanup)
-        perror("could not allocate v4l2 buffers");
-    }
-    ret = 0;
-    int i;
-    for (i = 0; i < camera->nbuffers; i++) {
-        struct v4l2_buffer buf;
-        int r;
-        memset((void*) &buf, 0, sizeof(struct v4l2_buffer));
-        buf.index = i;
-        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        buf.memory = V4L2_MEMORY_MMAP;
-        r = ioctl(camera->fd, VIDIOC_QUERYBUF, &buf);
-        if (r < 0)
-            ret = -(i+1);
-        if (ret == 0) {
-            camera->buffers[i] =
-                mmap(0, buf.length, PROT_READ + PROT_WRITE, MAP_SHARED,
-                     camera->fd, buf.m.offset);
-            camera->sizes[i] = buf.length;
-            if (camera->buffers[i] == MAP_FAILED)
-                ret = -(i+1000);
-        }
-    }
-    if (ret < 0) {
-        printf("ret = %d\n", ret);
-        if (ret > -1000) {
-            printf("query buffer %d\n", - (1 + ret));
-            perror("could not query v4l2 buffer");
-        } else {
-            printf("map buffer %d\n", - (1000 + ret));
-            perror("could not map v4l2 buffer");
-        }
+    if (0 > init_buffers(camid, nbuffers)) {
+        lua_pushboolean(L, 0);
+        return 1;
     }
 
     // start capturing
-    ret = 0;
+    int ret = 0;
+    int i;
     for (i = 0; i < camera->nbuffers; ++i) {
         struct v4l2_buffer buf;
         memset((void*) &buf, 0, sizeof(struct v4l2_buffer));
