@@ -194,7 +194,7 @@ static int init_capability(int camid)
 }
 
 
-static int init_format(int camid, int width, int height, int fps, int nbuffers)
+static int init_format(int camid, int width, int height, int nbuffers)
 {
     Cam * camera = &Cameras[camid];
 
@@ -238,12 +238,33 @@ static int init_format(int camid, int width, int height, int fps, int nbuffers)
     camera->height1  = fmt.fmt.pix.height;
     camera->width1   = fmt.fmt.pix.width;
     camera->nbuffers = nbuffers;
-    camera->fps      = fps;
 
     if (camera->height != camera->height1 || camera->width != camera->width1) {
         printf("Warning: camera resolution changed to %dx%d\n",
                camera->height1, camera->width1);
     }
+
+    return 0;
+}
+
+
+static int init_controls(int camid, int fps)
+{
+    Cam * camera = &Cameras[camid];
+
+    // set framerate
+    camera->fps = fps;
+
+    struct v4l2_streamparm setfps;
+    memset((void*) &setfps, 0, sizeof(struct v4l2_streamparm));
+    setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    setfps.parm.capture.timeperframe.numerator = 1;
+    setfps.parm.capture.timeperframe.denominator = camera->fps;
+    ioctl(camera->fd, VIDIOC_S_PARM, &setfps);
+
+    // set color controls
+    set_boolean_control(camera,V4L2_CID_AUTOGAIN, 1);
+    set_boolean_control(camera,V4L2_CID_AUTO_WHITE_BALANCE, 1);
 
     return 0;
 }
@@ -286,18 +307,17 @@ static int l_init (lua_State *L) {
         return 1;
     }
 
-    if (0 > init_format(camid, width, height, fps, nbuffers)) {
+    if (0 > init_format(camid, width, height, nbuffers)) {
         lua_pushboolean(L, 0);
         return 1;
     }
 
-    // set framerate
-    struct v4l2_streamparm setfps;
-    memset((void*) &setfps, 0, sizeof(struct v4l2_streamparm));
-    setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    setfps.parm.capture.timeperframe.numerator = 1;
-    setfps.parm.capture.timeperframe.denominator = camera->fps;
-    ioctl(camera->fd, VIDIOC_S_PARM, &setfps);
+    if (0 > init_controls(camid, fps)) {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+
     // allocate and map the buffers
     struct v4l2_requestbuffers rb;
     rb.count = camera->nbuffers;
@@ -339,9 +359,6 @@ static int l_init (lua_State *L) {
             perror("could not map v4l2 buffer");
         }
     }
-
-    set_boolean_control(camera,V4L2_CID_AUTOGAIN, 1);
-    set_boolean_control(camera,V4L2_CID_AUTO_WHITE_BALANCE, 1);
 
     // start capturing
     ret = 0;
