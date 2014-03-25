@@ -385,26 +385,31 @@ static int start_capturing(int camid)
 
 // frame grabber
 static int l_init (lua_State *L) {
-    Cam * camera;
-    // device
-    int camid = 0;
+    Cam * camera = NULL;
+
+    int camid    = 0;
+    int width    = 640;
+    int height   = 480;
+    int fps      = 1;
+    int nbuffers = 1;
+
+    // camera device id
     if (lua_isnumber(L, 1)) camid = lua_tonumber(L, 1);
     camera = &Cameras[camid];
     sprintf(camera->device,"/dev/video%d",camid);
     printf("Initializing device: %s\n", camera->device);
 
     // width at which to grab
-    int width    = 640;
     if (lua_isnumber(L, 2)) width = lua_tonumber(L, 2);
+
     // height at which to grab
-    int height   = 480;
     if (lua_isnumber(L, 3)) height = lua_tonumber(L, 3);
-    // grabbing speed
-    int fps      = 1;
+
+    // driver frame rate
     if (lua_isnumber(L, 4)) fps = lua_tonumber(L, 4);
     printf("FPS wanted %d \n", fps);
-    // nb of buffers
-    int nbuffers =  1;
+
+    // nb of driver buffers
     if (lua_isnumber(L, 5)) nbuffers = lua_tonumber(L, 5);
     printf("Using %d buffers\n", nbuffers);
 
