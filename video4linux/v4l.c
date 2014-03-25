@@ -194,6 +194,61 @@ static int init_capability(int camid)
 }
 
 
+static int init_format(int camid, int width, int height, int fps, int nbuffers)
+{
+    Cam * camera = &Cameras[camid];
+
+    // resetting cropping to full frame
+    struct v4l2_cropcap cropcap;
+    struct v4l2_crop crop;
+    memset((void*) &cropcap, 0, sizeof(struct v4l2_cropcap));
+
+    cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    if (0 == ioctl(camera->fd, VIDIOC_CROPCAP, &cropcap)) {
+        crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        crop.c = cropcap.defrect;
+        ioctl(camera->fd, VIDIOC_S_CROP, &crop);
+    }
+
+    // set format
+    struct v4l2_format fmt;
+
+    memset((void*) &fmt, 0, sizeof(struct v4l2_format));
+    fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+#if defined __NEON__
+    // Check that line width is multiple of 16
+    if(0 != (width % 16))
+    {
+        width = width & 0xFFFFFFF0;
+    }
+#endif
+
+    // TODO: error when ratio not correct
+    fmt.fmt.pix.width       = width;
+    fmt.fmt.pix.height      = height;
+    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+    fmt.fmt.pix.field       = V4L2_FIELD_ANY;
+    if (ioctl(camera->fd, VIDIOC_S_FMT, &fmt) < 0) {
+        perror("unable to set v4l2 format");
+        return -1;
+    }
+    camera->height   = height;
+    camera->width    = width;
+    camera->height1  = fmt.fmt.pix.height;
+    camera->width1   = fmt.fmt.pix.width;
+    camera->nbuffers = nbuffers;
+    camera->fps      = fps;
+
+    if (camera->height != camera->height1 || camera->width != camera->width1) {
+        printf("Warning: camera resolution changed to %dx%d\n",
+               camera->height1, camera->width1);
+    }
+
+    return 0;
+}
+
+
 // frame grabber
 static int l_init (lua_State *L) {
     Cam * camera;
@@ -231,49 +286,10 @@ static int l_init (lua_State *L) {
         return 1;
     }
 
-    struct v4l2_cropcap cropcap;
-    struct v4l2_crop crop;
-    struct v4l2_format fmt;
-
-    // resetting cropping to full frame
-    memset((void*) &cropcap, 0, sizeof(struct v4l2_cropcap));
-    cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if (0 == ioctl(camera->fd, VIDIOC_CROPCAP, &cropcap)) {
-        crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        crop.c = cropcap.defrect;
-        ioctl(camera->fd, VIDIOC_S_CROP, &crop);
+    if (0 > init_format(camid, width, height, fps, nbuffers)) {
+        lua_pushboolean(L, 0);
+        return 1;
     }
-    // set format
-    memset((void*) &fmt, 0, sizeof(struct v4l2_format));
-    fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-#if defined __NEON__
-  // Check that line width is multiple of 16
-    if(0 != (width % 16))
-    {
-        width = width & 0xFFFFFFF0;
-    }
-#endif
-    // TODO: error when ratio not correct
-    fmt.fmt.pix.width       = width;
-    fmt.fmt.pix.height      = height;
-    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-    fmt.fmt.pix.field       = V4L2_FIELD_ANY;
-    if (ioctl(camera->fd, VIDIOC_S_FMT, &fmt) < 0) {
-        // (==> this cleanup)
-        perror("unable to set v4l2 format");
-    }
-    camera->height   = height;
-    camera->width    = width;
-    camera->height1  = fmt.fmt.pix.height;
-    camera->width1   = fmt.fmt.pix.width;
-    camera->nbuffers = nbuffers;
-    camera->fps      = fps;
-
-    if (camera->height != camera->height1 ||
-        camera->width != camera->width1)
-        printf("Warning: camera resolution changed to %dx%d\n",
-               camera->height1, camera->width1);
 
     // set framerate
     struct v4l2_streamparm setfps;
