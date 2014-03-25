@@ -123,6 +123,35 @@ static int l_adjust_manual_focus(lua_State *L){
     return 0;
 }
 
+
+static int open_device(int camid, char *dev_name)
+{
+    Cam * camera = &Cameras[camid];
+    struct stat st;
+
+    if (-1 == stat (dev_name, &st)) {
+        fprintf (stderr, "Cannot identify '%s': %d, %s\n",
+           dev_name, errno, strerror (errno));
+        return -1;
+    }
+
+    if (!S_ISCHR (st.st_mode)) {
+        fprintf (stderr, "%s is no device\n", dev_name);
+        return -1;
+    }
+
+    camera->fd = open(dev_name, O_RDWR);
+
+    if (-1 == camera->fd) {
+        fprintf (stderr, "Cannot open '%s': %d, %s\n",
+           dev_name, errno, strerror (errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+
 // frame grabber
 static int l_init (lua_State *L) {
     Cam * camera;
@@ -147,10 +176,11 @@ static int l_init (lua_State *L) {
     int nbuffers =  1;
     if (lua_isnumber(L, 5)) nbuffers = lua_tonumber(L, 5);
     printf("Using %d buffers\n", nbuffers);
+
     // get camera
-    camera->fd = open(camera->device, O_RDWR);
-    if (camera->fd == -1)
-        perror("could not open v4l2 device");
+    open_device(camid, camera->device);
+
+
     struct v4l2_capability cap;
     struct v4l2_cropcap cropcap;
     struct v4l2_crop crop;
