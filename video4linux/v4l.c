@@ -299,7 +299,7 @@ static int l_grabFrame (lua_State *L) {
     }
     // Get Tensor's Info
     THFloatTensor * frame =
-        luaT_checkudata(L, 2, luaT_checktypename2id(L, "torch.FloatTensor"));
+        luaT_toudata(L, 2, luaT_typenameid(L, "torch.FloatTensor"));
 
     // resize given tensor
     THFloatTensor_resize3d(frame, 3,
