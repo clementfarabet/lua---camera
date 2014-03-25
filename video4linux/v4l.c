@@ -178,7 +178,10 @@ static int l_init (lua_State *L) {
     printf("Using %d buffers\n", nbuffers);
 
     // get camera
-    open_device(camid, camera->device);
+    if (0 > open_device(camid, camera->device)) {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
 
 
     struct v4l2_capability cap;
@@ -313,7 +316,9 @@ static int l_init (lua_State *L) {
     }
     camera->started = 1;
     printf("camera[%d] started : %d\n",camid,camera->started);
-    return 0;
+
+    lua_pushboolean(L, 1);
+    return 1;
 }
 
 // frame grabber
