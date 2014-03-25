@@ -52,6 +52,18 @@ typedef struct
 static Cam Cameras[MAX_CAMERAS];
 static int camidx = 0;
 
+
+static int xioctl(int fd, int request, void *arg)
+{
+    int r;
+
+    do r = ioctl (fd, request, arg);
+    while (-1 == r && EINTR == errno);
+
+    return r;
+}
+
+
 // camera control
 static void set_boolean_control(Cam *camera, int id, int val) {
     struct v4l2_control control;
@@ -152,6 +164,36 @@ static int open_device(int camid, char *dev_name)
 }
 
 
+static int init_capability(int camid)
+{
+    Cam * camera = &Cameras[camid];
+
+    struct v4l2_capability cap;
+    memset((void*) &cap, 0, sizeof(struct v4l2_capability));
+
+    if (-1 == xioctl (camera->fd, VIDIOC_QUERYCAP, &cap)) {
+        if (EINVAL == errno) {
+            perror("no V4L2 device found");
+            return -1;
+        } else {
+            return -1;
+        }
+    }
+
+    if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+        perror("v4l2 device does not support video capture");
+        return -1;
+    }
+
+    if (!(cap.capabilities & V4L2_CAP_STREAMING)) {
+        perror("v4l2 device does not support streaming i/o");
+        return -1;
+    }
+
+    return 0;
+}
+
+
 // frame grabber
 static int l_init (lua_State *L) {
     Cam * camera;
@@ -183,25 +225,16 @@ static int l_init (lua_State *L) {
         return 1;
     }
 
+    // init device
+    if (0 > init_capability(camid)) {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
 
-    struct v4l2_capability cap;
     struct v4l2_cropcap cropcap;
     struct v4l2_crop crop;
     struct v4l2_format fmt;
-    memset((void*) &cap, 0, sizeof(struct v4l2_capability));
-    int ret = ioctl(camera->fd, VIDIOC_QUERYCAP, &cap);
-    if (ret < 0) {
-        //      (==> this cleanup)
-        perror("could not query v4l2 device");
-    }
-    if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
-        // (==> this cleanup)
-        perror("v4l2 device does not support video capture");
-    }
-    if (!(cap.capabilities & V4L2_CAP_STREAMING)) {
-        // (==> this cleanup)
-        perror("v4l2 device does not support streaming i/o");
-    }
+
     // resetting cropping to full frame
     memset((void*) &cropcap, 0, sizeof(struct v4l2_cropcap));
     cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -254,7 +287,7 @@ static int l_init (lua_State *L) {
     rb.count = camera->nbuffers;
     rb.type =  V4L2_BUF_TYPE_VIDEO_CAPTURE;
     rb.memory = V4L2_MEMORY_MMAP;
-    ret = ioctl(camera->fd, VIDIOC_REQBUFS, &rb);
+    int ret = ioctl(camera->fd, VIDIOC_REQBUFS, &rb);
     if (ret < 0) {
         // (==> this cleanup)
         perror("could not allocate v4l2 buffers");
