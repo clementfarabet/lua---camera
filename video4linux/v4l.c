@@ -436,15 +436,17 @@ static int l_init (lua_State *L) {
 }
 
 // frame grabber
-static int l_grabFrame (lua_State *L) {
+static int l_grabFrame (lua_State *L)
+{
     // device
     Cam *camera;
     int camid = 0;
     if (lua_isnumber(L, 1)) camid = lua_tonumber(L, 1);
     camera = &Cameras[camid];
     if (camera->started != 1){
-        printf("Camera not open at this index\n");
-        return -1;
+        perror("Camera not open at this index");
+        lua_pushboolean(L, 0);
+        return 1;
     }
     // Get Tensor's Info
     THFloatTensor * frame =
@@ -616,7 +618,8 @@ static int l_grabFrame (lua_State *L) {
     }
     ret += ioctl(camera->fd, VIDIOC_QBUF, &buf);
 
-    return 0;
+    lua_pushboolean(L, 1);
+    return 1;
 }
 
 
