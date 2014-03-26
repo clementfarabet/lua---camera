@@ -58,9 +58,9 @@ function Camera:forward(tensor)
    libv4l.grabFrame(self.camidx, self.tensor)
    if tensor then
       if (self.tensor:type() ~= tensor:type()) then
-	 self.tensortyped:copy(self.tensor)
-	 image.scale(self.tensortyped, tensor)
-	 return tensor
+         self.tensortyped:copy(self.tensor)
+         image.scale(self.tensortyped, tensor)
+         return tensor
       end
       image.scale(self.tensor, tensor)
       return tensor
