@@ -457,15 +457,19 @@ static int l_grabFrame (lua_State *L)
                            camera->height1, camera->width1);
 
     // grab frame
-    int ret = 0;
-    int m0 = frame->stride[1];
-    int m1 = frame->stride[2];
-    int m2 = frame->stride[0];
-    struct v4l2_buffer buf;
-    unsigned char *src, *srcp;
+    int stride_image = frame->stride[0];
+    int stride_width = frame->stride[1];
+    int stride_data = frame->stride[2];
+
     float *dst = THFloatTensor_data(frame);
+
+
+    unsigned char *src, *srcp;
     float *dstp;
     int i, j, j2, k;
+    int ret = 0;
+
+    struct v4l2_buffer buf;
     memset((void*) &buf, 0, sizeof(struct v4l2_buffer));
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
@@ -485,7 +489,7 @@ static int l_grabFrame (lua_State *L)
 #pragma omp parallel for shared(src, dst, fl_cst_val, width1, camera) private(i,j,j2,k,srcp,dstp,y,u,v)
     for (i=0; i < camera->height1; i++) {
         srcp = &src[i * (camera->width1 << 1)];
-        dstp = &dst[i * m0];
+        dstp = &dst[i * stride_width];
 
 // Replace the grab line part by an Neon optimized version
 #if defined __NEON__
@@ -501,8 +505,8 @@ static int l_grabFrame (lua_State *L)
             "vdup.8      d3, r4              @ \n\t"
             "mov         r3, %2              @ pointer on dst R \n\t"
             "lsls        r5, %3, #2          @ Multiply stride by size of float \n\t"
-            "adds        r4, r3, r5          @ Add stride m2 for 2nd component \n\t"
-            "adds        r5, r4, r5          @ Add stride again m2 for 3th component \n\t"
+            "adds        r4, r3, r5          @ Add stride image for 2nd component \n\t"
+            "adds        r5, r4, r5          @ Add stride image again for 3th component \n\t"
             "1:                              @ loop on line \n\t"
             "vsubl.u8    q2, d16, d3         @ \n\t"
             "vsubl.u8    q3, d17, d2         @ \n\t"
@@ -584,7 +588,7 @@ static int l_grabFrame (lua_State *L)
             "vst1.32     {d24-d27}, [r4]!    @ \n\t"
             "vst1.32     {d28-d31}, [r5]!    @ \n\t"
             :
-            :"r" (srcp),"r" (fl_cst_val),"r"(dstp),"r"(m2),"r"(width1)
+            :"r" (srcp),"r" (fl_cst_val),"r"(dstp),"r"(stride_image),"r"(width1)
             : "cc", "r0", "r1", "r2", "r3", "r4", "r5", "memory",
               "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7",
               "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15",
@@ -594,7 +598,7 @@ static int l_grabFrame (lua_State *L)
               "d24", "d25", "d26", "d27", "d28", "d29", "d30", "d31"
             );
 #else
-        for (j=0, k=0; j < camera->width1; j++, k+=m1) {
+        for (j=0, k=0; j < camera->width1; j++, k+=stride_data) {
 
             j2 = j<<1;
 
@@ -610,9 +614,9 @@ static int l_grabFrame (lua_State *L)
             // red:
             dstp[k] = 0.00456*(y-16) + 0.00625*(v-128);
             // green:
-            dstp[k+m2] = 0.00456*(y-16) - 0.00318*(v-128) - 0.001536*(u-128);
+            dstp[k+stride_image] = 0.00456*(y-16) - 0.00318*(v-128) - 0.001536*(u-128);
             // blue:
-            dstp[k+2*m2] = 0.00456*(y-16) + 0.007910*(u-128);
+            dstp[k+2*stride_image] = 0.00456*(y-16) + 0.007910*(u-128);
         }
 #endif
     }
