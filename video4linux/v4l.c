@@ -435,34 +435,10 @@ static int l_init (lua_State *L) {
     return 1;
 }
 
-// frame grabber
-static int l_grabFrame (lua_State *L)
+
+static void copy_frame_rgb(int camid, float * dst, int stride_width, int stride_data, int stride_image)
 {
-    // device
-    Cam *camera;
-    int camid = 0;
-    if (lua_isnumber(L, 1)) camid = lua_tonumber(L, 1);
-    camera = &Cameras[camid];
-    if (camera->started != 1){
-        perror("Camera not open at this index");
-        lua_pushboolean(L, 0);
-        return 1;
-    }
-    // Get Tensor's Info
-    THFloatTensor * frame =
-        luaT_toudata(L, 2, luaT_typenameid(L, "torch.FloatTensor"));
-
-    // resize given tensor
-    THFloatTensor_resize3d(frame, 3,
-                           camera->height1, camera->width1);
-
-    // grab frame
-    int stride_image = frame->stride[0];
-    int stride_width = frame->stride[1];
-    int stride_data = frame->stride[2];
-
-    float *dst = THFloatTensor_data(frame);
-
+    Cam * camera = &Cameras[camid];
 
     unsigned char *src, *srcp;
     float *dstp;
@@ -621,6 +597,38 @@ static int l_grabFrame (lua_State *L)
 #endif
     }
     ret += ioctl(camera->fd, VIDIOC_QBUF, &buf);
+}
+
+
+// frame grabber
+static int l_grabFrame (lua_State *L)
+{
+    // device
+    Cam *camera;
+    int camid = 0;
+    if (lua_isnumber(L, 1)) camid = lua_tonumber(L, 1);
+    camera = &Cameras[camid];
+    if (camera->started != 1){
+        perror("Camera not open at this index");
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+    // refrence tensor
+    THFloatTensor * frame =
+        luaT_toudata(L, 2, luaT_typenameid(L, "torch.FloatTensor"));
+
+    // resize given tensor
+    THFloatTensor_resize3d(frame, 3,
+                           camera->height1, camera->width1);
+
+    // get tensor's Info
+    int stride_image = frame->stride[0];
+    int stride_width = frame->stride[1];
+    int stride_data = frame->stride[2];
+
+    float *dst = THFloatTensor_data(frame);
+
+    copy_frame_rgb(camid, dst, stride_width, stride_data, stride_image);
 
     lua_pushboolean(L, 1);
     return 1;
