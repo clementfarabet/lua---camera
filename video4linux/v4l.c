@@ -52,6 +52,18 @@ typedef struct
 static Cam Cameras[MAX_CAMERAS];
 static int camidx = 0;
 
+
+static int xioctl(int fd, int request, void *arg)
+{
+    int r;
+
+    do r = ioctl (fd, request, arg);
+    while (-1 == r && EINTR == errno);
+
+    return r;
+}
+
+
 // camera control
 static void set_boolean_control(Cam *camera, int id, int val) {
     struct v4l2_control control;
@@ -123,108 +135,155 @@ static int l_adjust_manual_focus(lua_State *L){
     return 0;
 }
 
-// frame grabber
-static int l_init (lua_State *L) {
-    Cam * camera;
-    // device
-    int camid = 0;
-    if (lua_isnumber(L, 1)) camid = lua_tonumber(L, 1);
-    camera = &Cameras[camid];
-    sprintf(camera->device,"/dev/video%d",camid);
-    printf("Initializing device: %s\n", camera->device);
 
-    // width at which to grab
-    int width    = 640;
-    if (lua_isnumber(L, 2)) width = lua_tonumber(L, 2);
-    // height at which to grab
-    int height   = 480;
-    if (lua_isnumber(L, 3)) height = lua_tonumber(L, 3);
-    // grabbing speed
-    int fps      = 1;
-    if (lua_isnumber(L, 4)) fps = lua_tonumber(L, 4);
-    printf("FPS wanted %d \n", fps);
-    // nb of buffers
-    int nbuffers =  1;
-    if (lua_isnumber(L, 5)) nbuffers = lua_tonumber(L, 5);
-    printf("Using %d buffers\n", nbuffers);
-    // get camera
-    camera->fd = open(camera->device, O_RDWR);
-    if (camera->fd == -1)
-        perror("could not open v4l2 device");
+static int open_device(int camid, char *dev_name)
+{
+    Cam * camera = &Cameras[camid];
+    struct stat st;
+
+    if (-1 == stat (dev_name, &st)) {
+        fprintf (stderr, "Cannot identify '%s': %d, %s\n",
+           dev_name, errno, strerror (errno));
+        return -1;
+    }
+
+    if (!S_ISCHR (st.st_mode)) {
+        fprintf (stderr, "%s is no device\n", dev_name);
+        return -1;
+    }
+
+    camera->fd = open(dev_name, O_RDWR);
+
+    if (-1 == camera->fd) {
+        fprintf (stderr, "Cannot open '%s': %d, %s\n",
+           dev_name, errno, strerror (errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int init_capability(int camid)
+{
+    Cam * camera = &Cameras[camid];
+
     struct v4l2_capability cap;
+    memset((void*) &cap, 0, sizeof(struct v4l2_capability));
+
+    if (-1 == xioctl (camera->fd, VIDIOC_QUERYCAP, &cap)) {
+        if (EINVAL == errno) {
+            perror("no V4L2 device found");
+            return -1;
+        } else {
+            return -1;
+        }
+    }
+
+    if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+        perror("v4l2 device does not support video capture");
+        return -1;
+    }
+
+    if (!(cap.capabilities & V4L2_CAP_STREAMING)) {
+        perror("v4l2 device does not support streaming i/o");
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int init_format(int camid, int width, int height)
+{
+    Cam * camera = &Cameras[camid];
+
+    // resetting cropping to full frame
     struct v4l2_cropcap cropcap;
     struct v4l2_crop crop;
-    struct v4l2_format fmt;
-    memset((void*) &cap, 0, sizeof(struct v4l2_capability));
-    int ret = ioctl(camera->fd, VIDIOC_QUERYCAP, &cap);
-    if (ret < 0) {
-        //      (==> this cleanup)
-        perror("could not query v4l2 device");
-    }
-    if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
-        // (==> this cleanup)
-        perror("v4l2 device does not support video capture");
-    }
-    if (!(cap.capabilities & V4L2_CAP_STREAMING)) {
-        // (==> this cleanup)
-        perror("v4l2 device does not support streaming i/o");
-    }
-    // resetting cropping to full frame
     memset((void*) &cropcap, 0, sizeof(struct v4l2_cropcap));
+
     cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (0 == ioctl(camera->fd, VIDIOC_CROPCAP, &cropcap)) {
         crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         crop.c = cropcap.defrect;
         ioctl(camera->fd, VIDIOC_S_CROP, &crop);
     }
+
     // set format
+    struct v4l2_format fmt;
+
     memset((void*) &fmt, 0, sizeof(struct v4l2_format));
     fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 #if defined __NEON__
-  // Check that line width is multiple of 16
+    // Check that line width is multiple of 16
     if(0 != (width % 16))
     {
         width = width & 0xFFFFFFF0;
     }
 #endif
+
     // TODO: error when ratio not correct
     fmt.fmt.pix.width       = width;
     fmt.fmt.pix.height      = height;
     fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
     fmt.fmt.pix.field       = V4L2_FIELD_ANY;
     if (ioctl(camera->fd, VIDIOC_S_FMT, &fmt) < 0) {
-        // (==> this cleanup)
         perror("unable to set v4l2 format");
+        return -1;
     }
     camera->height   = height;
     camera->width    = width;
     camera->height1  = fmt.fmt.pix.height;
     camera->width1   = fmt.fmt.pix.width;
-    camera->nbuffers = nbuffers;
-    camera->fps      = fps;
 
-    if (camera->height != camera->height1 ||
-        camera->width != camera->width1)
+    if (camera->height != camera->height1 || camera->width != camera->width1) {
         printf("Warning: camera resolution changed to %dx%d\n",
                camera->height1, camera->width1);
+    }
+
+    return 0;
+}
+
+
+static int init_controls(int camid, int fps)
+{
+    Cam * camera = &Cameras[camid];
 
     // set framerate
+    camera->fps = fps;
+
     struct v4l2_streamparm setfps;
     memset((void*) &setfps, 0, sizeof(struct v4l2_streamparm));
     setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     setfps.parm.capture.timeperframe.numerator = 1;
     setfps.parm.capture.timeperframe.denominator = camera->fps;
     ioctl(camera->fd, VIDIOC_S_PARM, &setfps);
+
+    // set color controls
+    set_boolean_control(camera,V4L2_CID_AUTOGAIN, 1);
+    set_boolean_control(camera,V4L2_CID_AUTO_WHITE_BALANCE, 1);
+
+    return 0;
+}
+
+
+static int init_buffers(int camid, int nbuffers)
+{
+    Cam * camera = &Cameras[camid];
+
     // allocate and map the buffers
+    camera->nbuffers = nbuffers;
+
     struct v4l2_requestbuffers rb;
     rb.count = camera->nbuffers;
     rb.type =  V4L2_BUF_TYPE_VIDEO_CAPTURE;
     rb.memory = V4L2_MEMORY_MMAP;
-    ret = ioctl(camera->fd, VIDIOC_REQBUFS, &rb);
+    int ret = ioctl(camera->fd, VIDIOC_REQBUFS, &rb);
     if (ret < 0) {
-        // (==> this cleanup)
         perror("could not allocate v4l2 buffers");
+        return -1;
     }
     ret = 0;
     int i;
@@ -247,22 +306,52 @@ static int l_init (lua_State *L) {
                 ret = -(i+1000);
         }
     }
+
     if (ret < 0) {
         printf("ret = %d\n", ret);
         if (ret > -1000) {
             printf("query buffer %d\n", - (1 + ret));
             perror("could not query v4l2 buffer");
+            return -1;
         } else {
             printf("map buffer %d\n", - (1000 + ret));
             perror("could not map v4l2 buffer");
+            return -1;
         }
     }
 
-    set_boolean_control(camera,V4L2_CID_AUTOGAIN, 1);
-    set_boolean_control(camera,V4L2_CID_AUTO_WHITE_BALANCE, 1);
+    return 0;
+}
 
-    // start capturing
-    ret = 0;
+
+static int init_camera(int camid, int width, int height, int fps, int nbuffers)
+{
+    if (0 > init_capability(camid)) {
+        return -1;
+    }
+
+    if (0 > init_format(camid, width, height)) {
+        return -1;
+    }
+
+    if (0 > init_controls(camid, fps)) {
+        return -1;
+    }
+
+    if (0 > init_buffers(camid, nbuffers)) {
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int start_capturing(int camid)
+{
+    Cam * camera = &Cameras[camid];
+
+    int ret = 0;
+    int i;
     for (i = 0; i < camera->nbuffers; ++i) {
         struct v4l2_buffer buf;
         memset((void*) &buf, 0, sizeof(struct v4l2_buffer));
@@ -270,51 +359,93 @@ static int l_init (lua_State *L) {
         buf.memory      = V4L2_MEMORY_MMAP;
         buf.index       = i;
         ret += ioctl(camera->fd, VIDIOC_QBUF, &buf);
+
+        if (ret < 0) {
+            printf("WARNING: could not enqueue camera %d, v4l2 buffer %d: errno %d\n",
+                camid, i, ret);
+        }
     }
-    if (ret < 0)
-        printf("WARNING: could not enqueue v4l2 buffers: errno %d\n", ret);
+
     enum v4l2_buf_type type;
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     ret = ioctl(camera->fd, VIDIOC_STREAMON, &type);
+
     if (ret < 0) {
-        printf("WARNING: could not start v4l2 capture: errno %d\n", ret);
+        fprintf(stderr, "could not start v4l2 capture: errno %d\n", ret);
         camera->started = 0;
         return -1;
     }
+
     camera->started = 1;
     printf("camera[%d] started : %d\n",camid,camera->started);
+
     return 0;
 }
 
+
 // frame grabber
-static int l_grabFrame (lua_State *L) {
-    // device
-    Cam *camera;
-    int camid = 0;
+static int l_init (lua_State *L) {
+    Cam * camera = NULL;
+
+    int camid    = 0;
+    int width    = 640;
+    int height   = 480;
+    int fps      = 1;
+    int nbuffers = 1;
+
+    // camera device id
     if (lua_isnumber(L, 1)) camid = lua_tonumber(L, 1);
     camera = &Cameras[camid];
-    if (camera->started != 1){
-        printf("Camera not open at this index\n");
-        return -1;
+    sprintf(camera->device,"/dev/video%d",camid);
+    printf("Initializing device: %s\n", camera->device);
+
+    // width at which to grab
+    if (lua_isnumber(L, 2)) width = lua_tonumber(L, 2);
+
+    // height at which to grab
+    if (lua_isnumber(L, 3)) height = lua_tonumber(L, 3);
+
+    // driver frame rate
+    if (lua_isnumber(L, 4)) fps = lua_tonumber(L, 4);
+    printf("FPS wanted %d \n", fps);
+
+    // nb of driver buffers
+    if (lua_isnumber(L, 5)) nbuffers = lua_tonumber(L, 5);
+    printf("Using %d buffers\n", nbuffers);
+
+    // open
+    if (0 > open_device(camid, camera->device)) {
+        lua_pushboolean(L, 0);
+        return 1;
     }
-    // Get Tensor's Info
-    THFloatTensor * frame =
-        luaT_checkudata(L, 2, luaT_checktypename2id(L, "torch.FloatTensor"));
 
-    // resize given tensor
-    THFloatTensor_resize3d(frame, 3,
-                           camera->height1, camera->width1);
+    // init
+    if (0 > init_camera(camid, width, height, fps, nbuffers)) {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
 
-    // grab frame
-    int ret = 0;
-    int m0 = frame->stride[1];
-    int m1 = frame->stride[2];
-    int m2 = frame->stride[0];
-    struct v4l2_buffer buf;
+    // start
+    if (0 > start_capturing(camid)) {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
+
+static void copy_frame_rgb(int camid, float * dst, int stride_width, int stride_data, int stride_image)
+{
+    Cam * camera = &Cameras[camid];
+
     unsigned char *src, *srcp;
-    float *dst = THFloatTensor_data(frame);
     float *dstp;
     int i, j, j2, k;
+    int ret = 0;
+
+    struct v4l2_buffer buf;
     memset((void*) &buf, 0, sizeof(struct v4l2_buffer));
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
@@ -334,7 +465,7 @@ static int l_grabFrame (lua_State *L) {
 #pragma omp parallel for shared(src, dst, fl_cst_val, width1, camera) private(i,j,j2,k,srcp,dstp,y,u,v)
     for (i=0; i < camera->height1; i++) {
         srcp = &src[i * (camera->width1 << 1)];
-        dstp = &dst[i * m0];
+        dstp = &dst[i * stride_width];
 
 // Replace the grab line part by an Neon optimized version
 #if defined __NEON__
@@ -350,8 +481,8 @@ static int l_grabFrame (lua_State *L) {
             "vdup.8      d3, r4              @ \n\t"
             "mov         r3, %2              @ pointer on dst R \n\t"
             "lsls        r5, %3, #2          @ Multiply stride by size of float \n\t"
-            "adds        r4, r3, r5          @ Add stride m2 for 2nd component \n\t"
-            "adds        r5, r4, r5          @ Add stride again m2 for 3th component \n\t"
+            "adds        r4, r3, r5          @ Add stride image for 2nd component \n\t"
+            "adds        r5, r4, r5          @ Add stride image again for 3th component \n\t"
             "1:                              @ loop on line \n\t"
             "vsubl.u8    q2, d16, d3         @ \n\t"
             "vsubl.u8    q3, d17, d2         @ \n\t"
@@ -433,7 +564,7 @@ static int l_grabFrame (lua_State *L) {
             "vst1.32     {d24-d27}, [r4]!    @ \n\t"
             "vst1.32     {d28-d31}, [r5]!    @ \n\t"
             :
-            :"r" (srcp),"r" (fl_cst_val),"r"(dstp),"r"(m2),"r"(width1)
+            :"r" (srcp),"r" (fl_cst_val),"r"(dstp),"r"(stride_image),"r"(width1)
             : "cc", "r0", "r1", "r2", "r3", "r4", "r5", "memory",
               "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7",
               "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15",
@@ -443,7 +574,7 @@ static int l_grabFrame (lua_State *L) {
               "d24", "d25", "d26", "d27", "d28", "d29", "d30", "d31"
             );
 #else
-        for (j=0, k=0; j < camera->width1; j++, k+=m1) {
+        for (j=0, k=0; j < camera->width1; j++, k+=stride_data) {
 
             j2 = j<<1;
 
@@ -459,15 +590,48 @@ static int l_grabFrame (lua_State *L) {
             // red:
             dstp[k] = 0.00456*(y-16) + 0.00625*(v-128);
             // green:
-            dstp[k+m2] = 0.00456*(y-16) - 0.00318*(v-128) - 0.001536*(u-128);
+            dstp[k+stride_image] = 0.00456*(y-16) - 0.00318*(v-128) - 0.001536*(u-128);
             // blue:
-            dstp[k+2*m2] = 0.00456*(y-16) + 0.007910*(u-128);
+            dstp[k+2*stride_image] = 0.00456*(y-16) + 0.007910*(u-128);
         }
 #endif
     }
     ret += ioctl(camera->fd, VIDIOC_QBUF, &buf);
+}
 
-    return 0;
+
+// frame grabber
+static int l_grabFrame (lua_State *L)
+{
+    // device
+    Cam *camera;
+    int camid = 0;
+    if (lua_isnumber(L, 1)) camid = lua_tonumber(L, 1);
+    camera = &Cameras[camid];
+    if (camera->started != 1){
+        perror("Camera not open at this index");
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+    // refrence tensor
+    THFloatTensor * frame =
+        luaT_toudata(L, 2, luaT_typenameid(L, "torch.FloatTensor"));
+
+    // resize given tensor
+    THFloatTensor_resize3d(frame, 3,
+                           camera->height1, camera->width1);
+
+    // get tensor's Info
+    int stride_image = frame->stride[0];
+    int stride_width = frame->stride[1];
+    int stride_data = frame->stride[2];
+
+    float *dst = THFloatTensor_data(frame);
+
+    copy_frame_rgb(camid, dst, stride_width, stride_data, stride_image);
+
+    lua_pushboolean(L, 1);
+    return 1;
 }
 
 
