@@ -641,7 +641,7 @@ static int l_releaseCam (lua_State *L) {
 
 
 // Register functions in LUA
-static const struct luaL_reg v4l [] = {
+static const struct luaL_Reg v4l [] = {
     {"init"             , l_init},
     {"grabFrame"        , l_grabFrame},
     {"releaseCam"       , l_releaseCam},
@@ -651,6 +651,8 @@ static const struct luaL_reg v4l [] = {
 };
 
 int luaopen_libv4l (lua_State *L) {
-    luaL_openlib(L, "libv4l", v4l, 0);
-    return 1;
+  lua_newtable(L);
+  luaT_setfuncs(L, v4l, 0);
+  lua_setglobal(L, "libv4l");
+  return 1;
 }
