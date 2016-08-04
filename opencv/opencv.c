@@ -132,7 +132,7 @@ static int l_releaseCam (lua_State *L) {
 }
 
 // Register functions
-static const struct luaL_reg opencv [] = {
+static const struct luaL_Reg opencv [] = {
   {"initCam", l_initCam},
   {"grabFrame", l_grabFrame},
   {"releaseCam", l_releaseCam},
