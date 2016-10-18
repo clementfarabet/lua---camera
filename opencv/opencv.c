@@ -12,6 +12,9 @@
 #include <luaT.h>
 #include <TH.h>
 
+#include "lauxlib.h"
+#include "lualib.h"
+
 #include <dirent.h>
 #include <errno.h>
 #include <time.h>
@@ -132,7 +135,7 @@ static int l_releaseCam (lua_State *L) {
 }
 
 // Register functions
-static const struct luaL_reg opencv [] = {
+static const struct luaL_Reg opencv [] = { // replace luaL_reg with luaL_Reg
   {"initCam", l_initCam},
   {"grabFrame", l_grabFrame},
   {"releaseCam", l_releaseCam},
@@ -140,6 +143,7 @@ static const struct luaL_reg opencv [] = {
 };
 
 int luaopen_libcamopencv (lua_State *L) {
-  luaL_openlib(L, "libcamopencv", opencv, 0);
+  // luaL_openlib(L, "libcamopencv", opencv, 0); 
+  luaL_newlib(L, opencv); // luaL_openlib is deprecated; use luaL_newlib to register libraries
   return 1;
 }
