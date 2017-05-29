@@ -26,10 +26,10 @@
 
 @interface ImageSnap()
 
-- (void)captureOutput:(QTCaptureOutput *)captureOutput
+- (void)captureOutput:(AVCaptureOutput *)captureOutput
   didOutputVideoFrame:(CVImageBufferRef)videoFrame
-     withSampleBuffer:(QTSampleBuffer *)sampleBuffer
-       fromConnection:(QTCaptureConnection *)connection;
+     withSampleBuffer:(AVSampleBuffer *)sampleBuffer
+       fromConnection:(AVCaptureConnection *)connection;
 
 @end
 
@@ -58,28 +58,28 @@
 // Returns an array of video devices attached to this computer.
 + (NSArray *)videoDevices{
   NSMutableArray *results = [NSMutableArray arrayWithCapacity:3];
-  [results addObjectsFromArray:[QTCaptureDevice inputDevicesWithMediaType:QTMediaTypeVideo]];
-  [results addObjectsFromArray:[QTCaptureDevice inputDevicesWithMediaType:QTMediaTypeMuxed]];
+  [results addObjectsFromArray:[AVCaptureDevice inputDevicesWithMediaType:AVMediaTypeVideo]];
+  [results addObjectsFromArray:[AVCaptureDevice inputDevicesWithMediaType:AVMediaTypeMuxed]];
   return results;
 }
 
 // Returns the default video device or nil if none found.
-+ (QTCaptureDevice *)defaultVideoDevice{
-  QTCaptureDevice *device = nil;
++ (AVCaptureDevice *)defaultVideoDevice{
+  AVCaptureDevice *device = nil;
 
-  device = [QTCaptureDevice defaultInputDeviceWithMediaType:QTMediaTypeVideo];
+  device = [AVCaptureDevice defaultInputDeviceWithMediaType:AVMediaTypeVideo];
   if( device == nil ){
-    device = [QTCaptureDevice defaultInputDeviceWithMediaType:QTMediaTypeMuxed];
+    device = [AVCaptureDevice defaultInputDeviceWithMediaType:AVMediaTypeMuxed];
   }
   return device;
 }
 
 // Returns the named capture device or nil if not found.
-+(QTCaptureDevice *)deviceNamed:(NSString *)name{
-  QTCaptureDevice *result = nil;
++(AVCaptureDevice *)deviceNamed:(NSString *)name{
+  AVCaptureDevice *result = nil;
 
   NSArray *devices = [ImageSnap videoDevices];
-  for( QTCaptureDevice *device in devices ){
+  for( AVCaptureDevice *device in devices ){
     if ( [name isEqualToString:[device description]] ){
       result = device;
     }   // end if: match
@@ -229,7 +229,7 @@
 /**
  * Begins the capture session. Frames begin coming in.
  */
--(BOOL)startSession:(QTCaptureDevice *)device
+-(BOOL)startSession:(AVCaptureDevice *)device
           withWidth:(unsigned int)width
          withHeight:(unsigned int)height
 {
@@ -257,8 +257,8 @@
 
 
   // Create the capture session
-  verbose( "\tCreating QTCaptureSession..." );
-  mCaptureSession = [[QTCaptureSession alloc] init];
+  verbose( "\tCreating AVCaptureSession..." );
+  mCaptureSession = [[AVCaptureSession alloc] init];
   verbose( "Done.\n");
   if( ![device open:&error] ){
     error( "\tCould not create capture session.\n" );
@@ -269,8 +269,8 @@
 
 
   // Create input object from the device
-  verbose( "\tCreating QTCaptureDeviceInput with %s...", [[device description] UTF8String] );
-  mCaptureDeviceInput = [[QTCaptureDeviceInput alloc] initWithDevice:device];
+  verbose( "\tCreating AVCaptureDeviceInput with %s...", [[device description] UTF8String] );
+  mCaptureDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:device];
   verbose( "Done.\n");
   if (![mCaptureSession addInput:mCaptureDeviceInput error:&error]) {
     error( "\tCould not convert device to input device.\n");
@@ -282,8 +282,8 @@
   }
 
   // Decompressed video output
-  verbose( "\tCreating QTCaptureDecompressedVideoOutput...");
-  mCaptureDecompressedVideoOutput = [[QTCaptureDecompressedVideoOutput alloc] init];
+  verbose( "\tCreating AVCaptureVideoDataOutput...");
+  mCaptureDecompressedVideoOutput = [[AVCaptureVideoDataOutput alloc] init];
   [mCaptureDecompressedVideoOutput setDelegate:self];
 
   [mCaptureDecompressedVideoOutput setPixelBufferAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
@@ -322,11 +322,11 @@
 
 
 
-// This delegate method is called whenever the QTCaptureDecompressedVideoOutput receives a frame
-- (void)captureOutput:(QTCaptureOutput *)captureOutput
+// This delegate method is called whenever the AVCaptureVideoDataOutput receives a frame
+- (void)captureOutput:(AVCaptureOutput *)captureOutput
   didOutputVideoFrame:(CVImageBufferRef)videoFrame
-     withSampleBuffer:(QTSampleBuffer *)sampleBuffer
-       fromConnection:(QTCaptureConnection *)connection
+    withSampleBuffer:(AVSampleBuffer *)sampleBuffer
+      fromConnection:(AVCaptureConnection *)connection
 {
   verbose( "." );
   if (videoFrame == nil ) {
@@ -343,7 +343,6 @@
     mCurrentImageBuffer = videoFrame;
   }   // end sync
   CVBufferRelease(imageBufferToRelease);
-
 }
 
 @end
@@ -354,7 +353,7 @@ int releaseCameras(lua_State *L);
 // static vars
 static int nbcams = 0;
 static ImageSnap **snap = NULL;
-static QTCaptureDevice **device = NULL;
+static AVCaptureDevice **device = NULL;
 static NSAutoreleasePool * pool = NULL;
 
 // start up all cameras found
@@ -379,7 +378,7 @@ int initCameras(lua_State *L) {
   int k = 0;
   if ([deviceName count] > 0) {
     printf("found %ld video device(s):\n", [deviceName count]);
-    for( QTCaptureDevice *name in deviceName ){
+    for( AVCaptureDevice *name in deviceName ){
       printf( "%d: %s\n", k++, [[name description] UTF8String] );
     }
   } else {
@@ -393,9 +392,9 @@ int initCameras(lua_State *L) {
     nbcams = [deviceName count];
     printf("only using the first %d camera(s)\n", nbcams);
   }
-  device = malloc(sizeof(QTCaptureDevice *)*nbcams);
+  device = malloc(sizeof(AVCaptureDevice *)*nbcams);
   int i = 0, j = 0;
-  for( QTCaptureDevice *dev in deviceName ) {
+  for( AVCaptureDevice *dev in deviceName ) {
     // next cam:
     for (int k=1; k<=nbcams; k++) {
       lua_rawgeti(L, 1, k);
