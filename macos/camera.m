@@ -25,12 +25,12 @@
 #include <camera.h>
 
 @interface ImageSnap()
-
+/*
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
   didOutputVideoFrame:(CVImageBufferRef)videoFrame
      withSampleBuffer:(AVSampleBuffer *)sampleBuffer
        fromConnection:(AVCaptureConnection *)connection;
-
+*/
 @end
 
 @implementation ImageSnap
@@ -58,8 +58,8 @@
 // Returns an array of video devices attached to this computer.
 + (NSArray *)videoDevices{
   NSMutableArray *results = [NSMutableArray arrayWithCapacity:3];
-  [results addObjectsFromArray:[AVCaptureDevice inputDevicesWithMediaType:AVMediaTypeVideo]];
-  [results addObjectsFromArray:[AVCaptureDevice inputDevicesWithMediaType:AVMediaTypeMuxed]];
+//  [results addObjectsFromArray:[AVCaptureDevice inputDevicesWithMediaType:AVMediaTypeVideo]];
+//  [results addObjectsFromArray:[AVCaptureDevice inputDevicesWithMediaType:AVMediaTypeMuxed]];
   return results;
 }
 
@@ -67,9 +67,9 @@
 + (AVCaptureDevice *)defaultVideoDevice{
   AVCaptureDevice *device = nil;
 
-  device = [AVCaptureDevice defaultInputDeviceWithMediaType:AVMediaTypeVideo];
+  //device = [AVCaptureDevice defaultInputDeviceWithMediaType:AVMediaTypeVideo];
   if( device == nil ){
-    device = [AVCaptureDevice defaultInputDeviceWithMediaType:AVMediaTypeMuxed];
+    //device = [AVCaptureDevice defaultInputDeviceWithMediaType:AVMediaTypeMuxed];
   }
   return device;
 }
@@ -260,18 +260,21 @@
   verbose( "\tCreating AVCaptureSession..." );
   mCaptureSession = [[AVCaptureSession alloc] init];
   verbose( "Done.\n");
+  /*
   if( ![device open:&error] ){
     error( "\tCould not create capture session.\n" );
     [mCaptureSession release];
     mCaptureSession = nil;
     return NO;
   }
+  */
 
 
   // Create input object from the device
   verbose( "\tCreating AVCaptureDeviceInput with %s...", [[device description] UTF8String] );
-  mCaptureDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:device];
+  //mCaptureDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:device];
   verbose( "Done.\n");
+  /*
   if (![mCaptureSession addInput:mCaptureDeviceInput error:&error]) {
     error( "\tCould not convert device to input device.\n");
     [mCaptureSession release];
@@ -280,19 +283,23 @@
     mCaptureDeviceInput = nil;
     return NO;
   }
+  */
 
   // Decompressed video output
   verbose( "\tCreating AVCaptureVideoDataOutput...");
   mCaptureDecompressedVideoOutput = [[AVCaptureVideoDataOutput alloc] init];
-  [mCaptureDecompressedVideoOutput setDelegate:self];
+  //[mCaptureDecompressedVideoOutput setDelegate:self];
 
+  /*
   [mCaptureDecompressedVideoOutput setPixelBufferAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
                                                                             [NSNumber numberWithUnsignedInt:width], (id)kCVPixelBufferWidthKey,
                                                                           [NSNumber numberWithUnsignedInt:height], (id)kCVPixelBufferHeightKey,
                                                                           [NSNumber numberWithUnsignedInt:kCVPixelFormatType_32ARGB], (id)kCVPixelBufferPixelFormatTypeKey,
                                                                           nil]];
+  */
 
   verbose( "Done.\n" );
+  /*
   if (![mCaptureSession addOutput:mCaptureDecompressedVideoOutput error:&error]) {
     error( "\tCould not create decompressed output.\n");
     [mCaptureSession release];
@@ -303,6 +310,7 @@
     mCaptureDecompressedVideoOutput = nil;
     return NO;
   }
+  */
 
   // Clear old image?
   verbose("\tEntering synchronized block to clear memory...");
@@ -323,6 +331,7 @@
 
 
 // This delegate method is called whenever the AVCaptureVideoDataOutput receives a frame
+/*
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
   didOutputVideoFrame:(CVImageBufferRef)videoFrame
     withSampleBuffer:(AVSampleBuffer *)sampleBuffer
@@ -344,6 +353,7 @@
   }   // end sync
   CVBufferRelease(imageBufferToRelease);
 }
+*/
 
 @end
 
