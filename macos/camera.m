@@ -58,8 +58,8 @@
 // Returns an array of video devices attached to this computer.
 + (NSArray *)videoDevices{
   NSMutableArray *results = [NSMutableArray arrayWithCapacity:3];
-//  [results addObjectsFromArray:[AVCaptureDevice inputDevicesWithMediaType:AVMediaTypeVideo]];
-//  [results addObjectsFromArray:[AVCaptureDevice inputDevicesWithMediaType:AVMediaTypeMuxed]];
+  [results addObjectsFromArray:[AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo]];
+  [results addObjectsFromArray:[AVCaptureDevice devicesWithMediaType:AVMediaTypeMuxed]];
   return results;
 }
 
