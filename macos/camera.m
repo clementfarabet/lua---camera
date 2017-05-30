@@ -260,15 +260,6 @@
   verbose( "\tCreating AVCaptureSession..." );
   mCaptureSession = [[AVCaptureSession alloc] init];
   verbose( "Done.\n");
-  /*
-  if( ![device open:&error] ){
-    error( "\tCould not create capture session.\n" );
-    [mCaptureSession release];
-    mCaptureSession = nil;
-    return NO;
-  }
-  */
-
 
   // Create input object from the device
   verbose( "\tCreating AVCaptureDeviceInput with %s...", [[device description] UTF8String] );
