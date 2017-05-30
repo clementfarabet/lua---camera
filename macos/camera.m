@@ -273,9 +273,7 @@
   // Create input object from the device
   verbose( "\tCreating AVCaptureDeviceInput with %s...", [[device description] UTF8String] );
   mCaptureDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:device error:&error];
-  verbose( "Done.\n");
-  /*
-  if (![mCaptureSession addInput:mCaptureDeviceInput error:&error]) {
+  if (!mCaptureDeviceInput) {
     error( "\tCould not convert device to input device.\n");
     [mCaptureSession release];
     [mCaptureDeviceInput release];
@@ -283,7 +281,8 @@
     mCaptureDeviceInput = nil;
     return NO;
   }
-  */
+  [mCaptureSession addInput:mCaptureDeviceInput];
+  verbose( "Done.\n");
 
   // Decompressed video output
   verbose( "\tCreating AVCaptureVideoDataOutput...");
