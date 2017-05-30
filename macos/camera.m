@@ -278,7 +278,9 @@
   // Decompressed video output
   verbose( "\tCreating AVCaptureVideoDataOutput...");
   mCaptureDecompressedVideoOutput = [[AVCaptureVideoDataOutput alloc] init];
-  //[mCaptureDecompressedVideoOutput setDelegate:self];
+  dispatch_queue_t queue = dispatch_queue_create("myQueue", NULL);
+  [mCaptureDecompressedVideoOutput setSampleBufferDelegate:self queue:queue];
+  dispatch_release(queue);
 
   /*
   [mCaptureDecompressedVideoOutput setPixelBufferAttributes:[NSDictionary dictionaryWithObjectsAndKeys:

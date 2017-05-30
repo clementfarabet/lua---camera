@@ -12,7 +12,7 @@
 BOOL g_verbose = NO;
 BOOL g_quiet = NO;
 
-@interface ImageSnap : NSObject {
+@interface ImageSnap : NSObject<AVCaptureVideoDataOutputSampleBufferDelegate> {
     
     AVCaptureSession                    *mCaptureSession;
     AVCaptureDeviceInput                *mCaptureDeviceInput;
