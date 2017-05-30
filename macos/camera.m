@@ -25,12 +25,14 @@
 #include <camera.h>
 
 @interface ImageSnap()
-/*
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
-  didOutputVideoFrame:(CVImageBufferRef)videoFrame
-     withSampleBuffer:(AVSampleBuffer *)sampleBuffer
-       fromConnection:(AVCaptureConnection *)connection;
-*/
+  didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
+    fromConnection:(AVCaptureConnection *)connection;
+
+- (void)captureOutput:(AVCaptureOutput *)captureOutput
+  didDropSampleBuffer:(CMSampleBufferRef)sampleBuffer
+    fromConnection:(AVCaptureConnection *)connection;
+
 @end
 
 @implementation ImageSnap
@@ -323,19 +325,14 @@
 
 
 // This delegate method is called whenever the AVCaptureVideoDataOutput receives a frame
-/*
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
-  didOutputVideoFrame:(CVImageBufferRef)videoFrame
-    withSampleBuffer:(AVSampleBuffer *)sampleBuffer
-      fromConnection:(AVCaptureConnection *)connection
+  didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
+    fromConnection:(AVCaptureConnection *)connection;
 {
   verbose( "." );
-  if (videoFrame == nil ) {
-    verbose( "'nil' Frame captured.\n" );
-    return;
-  }
 
   // Swap out old frame for new one
+  CVImageBufferRef videoFrame = CMSampleBufferGetImageBuffer(sampleBuffer);
   CVImageBufferRef imageBufferToRelease;
   CVBufferRetain(videoFrame);
 
@@ -345,7 +342,14 @@
   }   // end sync
   CVBufferRelease(imageBufferToRelease);
 }
-*/
+
+- (void)captureOutput:(AVCaptureOutput *)captureOutput
+  didDropSampleBuffer:(CMSampleBufferRef)sampleBuffer
+    fromConnection:(AVCaptureConnection *)connection;
+{
+  verbose( "." );
+  verbose( "'nil' (dropped) Frame captured.\n" );
+}
 
 @end
 
