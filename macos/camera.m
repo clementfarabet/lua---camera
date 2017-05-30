@@ -272,7 +272,7 @@
 
   // Create input object from the device
   verbose( "\tCreating AVCaptureDeviceInput with %s...", [[device description] UTF8String] );
-  //mCaptureDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:device];
+  mCaptureDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:device error:&error];
   verbose( "Done.\n");
   /*
   if (![mCaptureSession addInput:mCaptureDeviceInput error:&error]) {
