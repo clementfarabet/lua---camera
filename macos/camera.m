@@ -284,13 +284,9 @@
   [mCaptureDecompressedVideoOutput setSampleBufferDelegate:self queue:queue];
   dispatch_release(queue);
 
-  /*
-  [mCaptureDecompressedVideoOutput setPixelBufferAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                                                            [NSNumber numberWithUnsignedInt:width], (id)kCVPixelBufferWidthKey,
-                                                                          [NSNumber numberWithUnsignedInt:height], (id)kCVPixelBufferHeightKey,
-                                                                          [NSNumber numberWithUnsignedInt:kCVPixelFormatType_32ARGB], (id)kCVPixelBufferPixelFormatTypeKey,
-                                                                          nil]];
-  */
+  NSDictionary *newSettings =
+                    @{ (NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32ARGB) };
+  mCaptureDecompressedVideoOutput.videoSettings = newSettings;
 
   verbose( "Done.\n" );
   /*
