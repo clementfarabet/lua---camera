@@ -27,11 +27,11 @@
 @interface ImageSnap()
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
   didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
-    fromConnection:(AVCaptureConnection *)connection;
+  fromConnection:(AVCaptureConnection *)connection;
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
   didDropSampleBuffer:(CMSampleBufferRef)sampleBuffer
-    fromConnection:(AVCaptureConnection *)connection;
+  fromConnection:(AVCaptureConnection *)connection;
 
 @end
 
@@ -321,7 +321,7 @@
 // This delegate method is called whenever the AVCaptureVideoDataOutput receives a frame
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
   didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
-    fromConnection:(AVCaptureConnection *)connection;
+  fromConnection:(AVCaptureConnection *)connection;
 {
   verbose( "." );
 
@@ -339,7 +339,7 @@
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
   didDropSampleBuffer:(CMSampleBufferRef)sampleBuffer
-    fromConnection:(AVCaptureConnection *)connection;
+  fromConnection:(AVCaptureConnection *)connection;
 {
   verbose( "." );
   verbose( "'nil' (dropped) Frame captured.\n" );
