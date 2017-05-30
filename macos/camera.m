@@ -67,9 +67,9 @@
 + (AVCaptureDevice *)defaultVideoDevice{
   AVCaptureDevice *device = nil;
 
-  //device = [AVCaptureDevice defaultInputDeviceWithMediaType:AVMediaTypeVideo];
+  device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
   if( device == nil ){
-    //device = [AVCaptureDevice defaultInputDeviceWithMediaType:AVMediaTypeMuxed];
+    device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeMuxed];
   }
   return device;
 }
