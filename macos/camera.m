@@ -280,17 +280,8 @@
   // Decompressed video output
   verbose( "\tCreating AVCaptureVideoDataOutput...");
   mCaptureDecompressedVideoOutput = [[AVCaptureVideoDataOutput alloc] init];
-  dispatch_queue_t queue = dispatch_queue_create("myQueue", NULL);
-  [mCaptureDecompressedVideoOutput setSampleBufferDelegate:self queue:queue];
-  dispatch_release(queue);
 
-  NSDictionary *newSettings =
-                    @{ (NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32ARGB) };
-  mCaptureDecompressedVideoOutput.videoSettings = newSettings;
-
-  verbose( "Done.\n" );
-  /*
-  if (![mCaptureSession addOutput:mCaptureDecompressedVideoOutput error:&error]) {
+  if (!mCaptureDecompressedVideoOutput) {
     error( "\tCould not create decompressed output.\n");
     [mCaptureSession release];
     [mCaptureDeviceInput release];
@@ -300,7 +291,14 @@
     mCaptureDecompressedVideoOutput = nil;
     return NO;
   }
-  */
+  dispatch_queue_t queue = dispatch_queue_create("myQueue", NULL);
+  [mCaptureDecompressedVideoOutput setSampleBufferDelegate:self queue:queue];
+  dispatch_release(queue);
+  verbose( "Done.\n" );
+
+  NSDictionary *newSettings =
+                    @{ (NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32ARGB) };
+  mCaptureDecompressedVideoOutput.videoSettings = newSettings;
 
   // Clear old image?
   verbose("\tEntering synchronized block to clear memory...");
