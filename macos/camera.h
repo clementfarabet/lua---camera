@@ -16,7 +16,7 @@ BOOL g_quiet = NO;
     
     AVCaptureSession                    *mCaptureSession;
     AVCaptureDeviceInput                *mCaptureDeviceInput;
-    AVCaptureVideoDataOutput    *mCaptureDecompressedVideoOutput;
+    AVCaptureVideoDataOutput            *mCaptureDecompressedVideoOutput;
     CVImageBufferRef                    mCurrentImageBuffer;
 }
 
