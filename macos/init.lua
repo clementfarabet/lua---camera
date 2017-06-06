@@ -38,37 +38,23 @@ function Camera:__init(...)
    end
 
    -- buffers
-   self.tensorsized = {}
-   self.buffer = {}
-   self.tensortyped = {}
-   for i = 1,#self.idx do
-      self.tensorsized[i] = torch.FloatTensor(3, height, width)
-      self.buffer[i] = torch.FloatTensor()
-      self.tensortyped[i] = torch.Tensor(3, height, width)
-   end
+   self.tensorsized = torch.FloatTensor(3, height, width)
+   self.buffer = torch.FloatTensor()
+   self.tensortyped = torch.Tensor(3, height, width)
 end
 
 function Camera:forward()
-   -- grab all frames
-   libcammacos.grabFrames(self.buffer)
-
-   -- process all frames
-   for i = 1,#self.idx do
-      -- resize frames
-      if self.tensorsized[i]:size(2) ~= self.buffer[i]:size(2) or self.tensorsized[i]:size(3) ~= self.buffer[i]:size(3) then
-         image.scale(self.tensorsized[i],self.buffer[i])
-      else
-         self.tensorsized[i] = self.buffer[i]
-      end
-      -- retype frames
-      if self.tensortyped[i]:type() ~= self.tensorsized[i]:type() then
-         self.tensortyped[i]:copy(self.tensorsized[i])
-      else
-         self.tensortyped[i] = self.tensorsized[i]
-      end
+   libcammacos.grabFrame(self.idx, self.buffer)
+   if self.tensorsized:size(2) ~= self.buffer:size(2) or self.tensorsized:size(3) ~= self.buffer:size(3) then
+      image.scale(self.tensorsized, self.buffer)
+   else
+      self.tensorsized = self.buffer
    end
-
-   -- done
+   if self.tensortyped:type() ~= self.tensorsized:type() then
+      self.tensortyped:copy(self.tensorsized)
+   else
+      self.tensortyped = self.tensorsized
+   end
    return self.tensortyped
 end
 
