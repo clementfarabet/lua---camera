@@ -8,6 +8,9 @@ require 'xlua'
 ----------------------------------
 -- load camera driver based on OS
 ----------------------------------
+
+useOpenCV = @useOpenCV@
+
 if useOpenCV then 
    if not xlua.require 'camopencv' then
       xlua.error('failed to load camopencv wrapper: verify that camopencv is installed')
@@ -17,8 +20,8 @@ elseif sys.OS == 'linux' then
       xlua.error('failed to load video4linux wrapper: verify that you have v4l2 libs')
       end
 elseif sys.OS == 'macos' then
-   if not xlua.require 'camopencv' then
-      xlua.error('failed to load camopencv wrapper: verify that camopencv is installed')
+   if not xlua.require 'cammacos' then
+      xlua.error('failed to load cammacos wrapper: verify that cammacos is installed')
    end
 else
    xlua.error('no camera driver available for your OS, sorry :-(')
