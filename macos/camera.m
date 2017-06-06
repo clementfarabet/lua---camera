@@ -462,7 +462,7 @@ int grabFrame(lua_State *L) {
   int m1 = tensor->stride[2];
   int m2 = tensor->stride[0];
   int i, j, k;
-  const int nChannels = 3;
+  const int nChannels = [imageRep samplesPerPixel];
   for (i = 0; i < height; i++) {
       for (j = 0, k = 0; j < width; j++, k+= m1) {
           dst[k]      = bytes[i*bytesPerRow + j*nChannels + 2]/255.;
