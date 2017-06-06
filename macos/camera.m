@@ -434,51 +434,47 @@ int initCameras(lua_State *L) {
 // grab next frame
 int grabFrame(lua_State *L) {
 
-  // grab pixels for each camera
-  for (int i=0; i<nbcams; i++) {
+  // get next tensor
+  const int idx = lua_tonumber(L, 1);
+  THFloatTensor * tensor = luaT_toudata(L, 2, "torch.FloatTensor");
 
-    // get next tensor
-    const int idx = lua_tonumber(L, 1);
-    THFloatTensor * tensor = luaT_toudata(L, 2, "torch.FloatTensor");
+  // grab frame
+  verbose("grabbing image %d\n", idx);
+  CIImage *image = [snap[idx] snapshot];
+  verbose("grabbed\n");
 
-    // grab frame
-    verbose("grabbing image %d\n", i);
-    CIImage *image = [snap[i] snapshot];
-    verbose("grabbed\n");
+  // export to bitmap
+  NSBitmapImageRep *imageRep = [[NSBitmapImageRep alloc] initWithCIImage:image];
 
-    // export to bitmap
-    NSBitmapImageRep *imageRep = [[NSBitmapImageRep alloc] initWithCIImage:image];
+  // get info
+  NSSize size = [imageRep size];
+  int bytesPerRow = [imageRep bytesPerRow];
+  unsigned char *bytes = [imageRep bitmapData];
 
-    // get info
-    NSSize size = [imageRep size];
-    int bytesPerRow = [imageRep bytesPerRow];
-    unsigned char *bytes = [imageRep bitmapData];
+  // resize dest
+  long width = size.width;
+  long height = size.height;
+  THFloatTensor_resize3d(tensor, 3, height, width);
 
-    // resize dest
-    long width = size.width;
-    long height = size.height;
-    THFloatTensor_resize3d(tensor, 3, height, width);
-
-    // copy pixels to tensor
-    float *dst = THFloatTensor_data(tensor);
-    int m0 = tensor->stride[1];
-    int m1 = tensor->stride[2];
-    int m2 = tensor->stride[0];
-    int i, j, k;
-    const int nChannels = 3;
-    for (i = 0; i < height; i++) {
-        for (j = 0, k = 0; j < width; j++, k+= m1) {
-            dst[k]      = bytes[i*bytesPerRow + j*nChannels + 2]/255.;
-            dst[k+m2]   = bytes[i*bytesPerRow + j*nChannels + 1]/255.;
-            dst[k+2*m2] = bytes[i*bytesPerRow + j*nChannels + 0]/255.;
-        }
-        dst += m0;
-    }
-
-    // cleanup
-    [imageRep release];
-    [image release];
+  // copy pixels to tensor
+  float *dst = THFloatTensor_data(tensor);
+  int m0 = tensor->stride[1];
+  int m1 = tensor->stride[2];
+  int m2 = tensor->stride[0];
+  int i, j, k;
+  const int nChannels = 3;
+  for (i = 0; i < height; i++) {
+      for (j = 0, k = 0; j < width; j++, k+= m1) {
+          dst[k]      = bytes[i*bytesPerRow + j*nChannels + 2]/255.;
+          dst[k+m2]   = bytes[i*bytesPerRow + j*nChannels + 1]/255.;
+          dst[k+2*m2] = bytes[i*bytesPerRow + j*nChannels + 0]/255.;
+      }
+      dst += m0;
   }
+
+  // cleanup
+  [imageRep release];
+  [image release];
 
   // done
   return 0;
