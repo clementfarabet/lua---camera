@@ -3,7 +3,7 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import <QTKit/QTKit.h>
+#import <AVFoundation/AVFoundation.h>
 
 #define error(...) fprintf(stderr, __VA_ARGS__)
 #define console(...) (!g_quiet && printf(__VA_ARGS__))
@@ -12,34 +12,34 @@
 BOOL g_verbose = NO;
 BOOL g_quiet = NO;
 
-@interface ImageSnap : NSObject {
+@interface ImageSnap : NSObject<AVCaptureVideoDataOutputSampleBufferDelegate> {
     
-    QTCaptureSession                    *mCaptureSession;
-    QTCaptureDeviceInput                *mCaptureDeviceInput;
-    QTCaptureDecompressedVideoOutput    *mCaptureDecompressedVideoOutput;
+    AVCaptureSession                    *mCaptureSession;
+    AVCaptureDeviceInput                *mCaptureDeviceInput;
+    AVCaptureVideoDataOutput            *mCaptureDecompressedVideoOutput;
     CVImageBufferRef                    mCurrentImageBuffer;
 }
 
 /**
- * Returns all attached QTCaptureDevice objects that have video.
- * This includes video-only devices (QTMediaTypeVideo) and
- * audio/video devices (QTMediaTypeMuxed).
+ * Returns all attached AVCaptureDevice objects that have video.
+ * This includes video-only devices (AVMediaTypeVideo) and
+ * audio/video devices (AVMediaTypeMuxed).
  *
  * @return autoreleased array of video devices
  */
 +(NSArray *)videoDevices;
 
 /**
- * Returns the default QTCaptureDevice object for video
+ * Returns the default AVCaptureDevice object for video
  * or nil if none is found.
  */
-+(QTCaptureDevice *)defaultVideoDevice;
++(AVCaptureDevice *)defaultVideoDevice;
 
 /**
- * Returns the QTCaptureDevice with the given name
+ * Returns the AVCaptureDevice with the given name
  * or nil if the device cannot be found.
  */
-+(QTCaptureDevice *)deviceNamed:(NSString *)name;
++(AVCaptureDevice *)deviceNamed:(NSString *)name;
 
 /**
  * Writes an NSImage to disk, formatting it according
@@ -58,7 +58,7 @@ BOOL g_quiet = NO;
 -(id)init;
 -(void)dealloc;
 
--(BOOL)startSession:(QTCaptureDevice *)device withWidth:(unsigned int)width withHeight:(unsigned int)height;
+-(BOOL)startSession:(AVCaptureDevice *)device withWidth:(unsigned int)width withHeight:(unsigned int)height;
 -(CIImage *)snapshot;
 -(void)stopSession;
 

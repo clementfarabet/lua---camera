@@ -8,3 +8,5 @@ IF(OpenCV_FOUND)
   ADD_TORCH_PACKAGE(camopencv "${src}" "${luasrc}" "Image Processing")
   TARGET_LINK_LIBRARIES(camopencv luaT TH ${OpenCV_LIBS})
 ENDIF(OpenCV_FOUND)
+
+set(OpenCV_FOUND ${OpenCV_FOUND} PARENT_SCOPE)
